@@ -15,6 +15,24 @@ class Length(layers.Layer):
         return input_shape[:-1]
 
 
+class Mask(layers.Layer):
+    def call(self, inputs, **kwargs):
+        # use vector length to select target capsule, shape=[batch_size, num_capsule]
+        # TODO: try y_true
+        x = K.sqrt(K.sum(K.square(inputs), -1))
+
+        # Enlarge the range of values in x to make max(new_x)=1 and others < 0
+        x = (x - K.max(x, 1, True)) / K.epsilon() + 1
+        mask = K.clip(x, 0, 1)  # the max value in x clipped to 1 and other to 0
+
+        # masked, shape = [batch_size, dim_vector]
+        inputs_masked = K.batch_dot(inputs, mask, [1, 1])
+        return inputs_masked
+
+    def compute_output_shape(self, input_shape):
+        return tuple([None, input_shape[-1]])
+
+
 def squash(vectors):
     """
     The non-linear activation used in Capsule. It drives the length of a large vector to near 1 and small vector to 0
