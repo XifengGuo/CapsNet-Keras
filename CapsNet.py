@@ -10,7 +10,7 @@ Result:
 from keras import layers, models
 from keras import backend as K
 from keras.utils import to_categorical
-from capsulelayers import CapsuleLayer, PrimaryCap, Length
+from capsulelayers import CapsuleLayer, PrimaryCap, Length, Mask
 
 
 def CapsNet(input_shape, batch_size):
@@ -21,9 +21,16 @@ def CapsNet(input_shape, batch_size):
 
     digitcaps = CapsuleLayer(num_capsule=10, dim_vector=16, batch_size=batch_size)(primarycaps)
 
-    out = Length()(digitcaps)
+    out_caps = Length(name='out_caps')(digitcaps)
 
-    return models.Model(x, out)
+    # Reconstruction network
+    masked = Mask()(digitcaps)
+    x_recon = layers.Dense(512, activation='relu')(masked)
+    x_recon = layers.Dense(1024, activation='relu')(x_recon)
+    x_recon = layers.Dense(784, activation='sigmoid')(x_recon)
+    x_recon = layers.Reshape(target_shape=[28, 28, 1], name='out_recon')(x_recon)
+
+    return models.Model(x, [out_caps, x_recon])
 
 
 def margin_loss(y_true, y_pred):
@@ -58,6 +65,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--batch_size', default=100, type=int)
     parser.add_argument('--epochs', default=20, type=int)
+    parser.add_argument('--lam_recon', default=0.0005, type=float)
     args = parser.parse_args()
     print(args)
 
@@ -67,10 +75,13 @@ if __name__ == "__main__":
     # define model
     model = CapsNet([28,28,1], batch_size=args.batch_size)
     model.summary()
-    model.compile(optimizer='adam', loss=margin_loss, metrics=['acc'])
+    model.compile(optimizer='adam',
+                  loss=[margin_loss, 'mse'],
+                  loss_weights=[1., args.lam_recon],
+                  metrics={'out_caps': 'accuracy'})
 
     # begin training
-    model.fit(x_train, y_train, batch_size=args.batch_size, epochs=args.epochs,
-              validation_data=[x_test, y_test])
+    model.fit(x_train, [y_train, x_train], batch_size=args.batch_size, epochs=args.epochs,
+              validation_data=[x_test, [y_test, x_test]])
     model.save('trained_model.h5')
     print('Trained model saved to \'trained_model.h5\'')
