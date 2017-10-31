@@ -32,6 +32,12 @@ Training without reconstruction network by setting lam_recon=0.
 `$ python CapsNet.py --lam_recon 0.`
 ## Results
 
+Accuracy with data augmentation (shift at most 2 pixels in each direction):   
+***The code is ready, I'm running it to get results. Feel free to run on your own computer.***   
+
+   | Waiting for the results |
+   :---|
+   
 Accuracy during training with reconstruction coefficient lam_recon=0.0005:   
 
    Epoch     |   1   |   2  |  3   |  4   |   5   |   6  |  7   |  8  |  9   |  10  | 11

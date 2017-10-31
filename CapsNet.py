@@ -65,17 +65,35 @@ def load_mnist():
 
 if __name__ == "__main__":
     import numpy as np
+    from keras.preprocessing.image import ImageDataGenerator
+    from keras import callbacks
+
+    def train_generator(x, y, batch_size, shift_fraction=0.):
+        train_datagen = ImageDataGenerator(width_shift_range=shift_fraction,
+                                           height_shift_range=shift_fraction)  # shift up to 2 pixel for MNIST
+        generator = train_datagen.flow(x, y, batch_size=batch_size)
+        while 1:
+            x_batch, y_batch = generator.next()
+            yield ([x_batch, y_batch], [y_batch, x_batch])
+
     # setting the hyper parameters
     import argparse
     parser = argparse.ArgumentParser()
     parser.add_argument('--batch_size', default=100, type=int)
     parser.add_argument('--epochs', default=20, type=int)
     parser.add_argument('--lam_recon', default=0.0005, type=float)
+    parser.add_argument('--shift_fraction', default=0.1, type=float)
+    parser.add_argument('--save_dir', default='./result')
     args = parser.parse_args()
     print(args)
 
     # load data
     (x_train, y_train), (x_test, y_test) = load_mnist()
+
+    # callbacks
+    log = callbacks.CSVLogger(args.save_dir + '/log.csv')
+    tb = callbacks.TensorBoard(log_dir=args.save_dir+'/tensorboard-logs', batch_size=args.batch_size)
+    checkpoint = callbacks.ModelCheckpoint(args.save_dir + '/weights-{epoch:02d}.h5', save_best_only=True, verbose=1)
 
     # define model
     model = CapsNet(input_shape=[28, 28, 1],
@@ -88,7 +106,16 @@ if __name__ == "__main__":
                   metrics={'out_caps': 'accuracy'})
 
     # begin training
-    model.fit([x_train, y_train], [y_train, x_train], batch_size=args.batch_size, epochs=args.epochs,
-              validation_data=[[x_test, y_test], [y_test, x_test]])
-    model.save('trained_model.h5')
+    # Training without data augmentation:
+    # model.fit([x_train, y_train], [y_train, x_train], batch_size=args.batch_size, epochs=args.epochs,
+    #           validation_data=[[x_test, y_test], [y_test, x_test]], callbacks=[log, tb])
+
+    # Training with data augmentation. If shift_fraction=0., also no augmentation.
+    model.fit_generator(generator=train_generator(x_train, y_train, args.batch_size, args.shift_fraction),
+                        steps_per_epoch=int(y_train.shape[0] / args.batch_size),
+                        epochs=args.epochs,
+                        validation_data=[[x_test, y_test], [y_test, x_test]],
+                        callbacks=[log, tb, checkpoint])
+    model.save(args.save_dir + '/trained_model.h5')
     print('Trained model saved to \'trained_model.h5\'')
+
