@@ -16,13 +16,13 @@ from keras.utils import to_categorical
 from capsulelayers import CapsuleLayer, PrimaryCap, Length, Mask
 
 
-def CapsNet(input_shape, n_class, batch_size):
+def CapsNet(input_shape, n_class, num_routing):
     x = layers.Input(shape=input_shape)
     conv1 = layers.Conv2D(filters=256, kernel_size=9, strides=1, padding='valid', activation='relu')(x)
 
     primarycaps = PrimaryCap(conv1, dim_vector=8, n_channels=32, kernel_size=9, strides=2, padding='valid')
 
-    digitcaps = CapsuleLayer(num_capsule=n_class, dim_vector=16, batch_size=batch_size)(primarycaps)
+    digitcaps = CapsuleLayer(num_capsule=n_class, dim_vector=16, num_routing=num_routing)(primarycaps)
 
     out_caps = Length(name='out_caps')(digitcaps)
 
@@ -67,6 +67,7 @@ if __name__ == "__main__":
     import numpy as np
     from keras.preprocessing.image import ImageDataGenerator
     from keras import callbacks
+    from keras.utils.vis_utils import plot_model
 
     def train_generator(x, y, batch_size, shift_fraction=0.):
         train_datagen = ImageDataGenerator(width_shift_range=shift_fraction,
@@ -82,6 +83,7 @@ if __name__ == "__main__":
     parser.add_argument('--batch_size', default=100, type=int)
     parser.add_argument('--epochs', default=20, type=int)
     parser.add_argument('--lam_recon', default=0.0005, type=float)
+    parser.add_argument('--num_routing', default=3, type=int)
     parser.add_argument('--shift_fraction', default=0.1, type=float)
     parser.add_argument('--save_dir', default='./result')
     args = parser.parse_args()
@@ -98,8 +100,10 @@ if __name__ == "__main__":
     # define model
     model = CapsNet(input_shape=[28, 28, 1],
                     n_class=len(np.unique(np.argmax(y_train, 1))),
-                    batch_size=args.batch_size)
+                    num_routing=args.num_routing)
     model.summary()
+    plot_model(model, to_file=args.save_dir+'/model.png', show_shapes=True)
+
     model.compile(optimizer='adam',
                   loss=[margin_loss, 'mse'],
                   loss_weights=[1., args.lam_recon],

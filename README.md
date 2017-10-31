@@ -30,29 +30,28 @@ $ python CapsNet.py
 Training without reconstruction network by setting lam_recon=0.   
 
 `$ python CapsNet.py --lam_recon 0.`
+
+Other parameters include `batch_size, epochs, lam_recon, num_routing, shift_fraction, save_dir` can 
+passed to the function in the same way. Please refer to CapsNet.py
+
 ## Results
 
-Accuracy with data augmentation (shift at most 2 pixels in each direction):   
-***The code is ready, I'm running it to get results. Feel free to run on your own computer.***   
+Accuracy with data augmentation (shift at most 2 pixels in each direction):     
 
-   | Waiting for the results |
-   :---|
+   Epoch     |   1   |   5  |  10  |  15  |  20   
+   :---------|:------:|:---:|:----:|:----:|:------:
+   train_acc |  91.0 | 99.0 | 99.4 | 99.6 |  99.7 
+   vali_acc  |  98.7 | 99.24| 99.31| 99.39|  99.52
    
-Accuracy during training with reconstruction coefficient lam_recon=0.0005:   
-
-   Epoch     |   1   |   2  |  3   |  4   |   5   |   6  |  7   |  8  |  9   |  10  | 11
-   :---------|:------:|:---:|:----:|:----:|:------:|:---:|:----:|:---:|:----:|:---: |:---:  
-   train_acc |  94.8 | 98.9 | 99.3 | 99.4 |  99.6 | 99.7 | 99.8 | 99.8| 99.9 | 99.9 | 99.95
-   vali_acc  |  98.7 | 99.0 | 99.2 | 99.2 |  99.39| 99.30| 99.38| 99.35|99.46 |99.38| 99.45
-
-Accuracy during training without reconstruction:   
-
-   Epoch     |   1   |   2  |  3   |  4   |   5   |   6  |  7   |  8  |  9   |  10  | 11
-   :---------|:------:|:---:|:----:|:----:|:------:|:---:|:----:|:---:|:----:|:---: |:---:  
-   train_acc |  94.4 | 98.9 | 99.2 | 99.5 |  99.6 | 99.7 | 99.8 | 99.9| 99.9 | 99.9 | 99.95
-   vali_acc  |  98.5 | 99.1 | 99.2 | 99.3 |  99.36| 99.36| 99.43| 99.34|99.42 |99.41| 99.44
    
-Every epoch consumes more than 300s on a single GTX 1070 GPU.   
+Accuracy without data augmentation:   
+
+   Epoch     |   1   |   2  |   5   |  10  | 11
+   :---------|:------:|:---:|:------:|:---: |:---:  
+   train_acc |  94.8 | 98.9 |  99.6 | 99.9 | 99.95
+   vali_acc  |  98.7 | 99.0 | 99.39 | 99.38| 99.45
+
+Every epoch consumes about 260s on a single GTX 1070 GPU.   
 Maybe there're some problems in my implementation. Contributions are welcome.
 
 ## TODO: 

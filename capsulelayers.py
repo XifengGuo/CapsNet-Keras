@@ -1,4 +1,5 @@
 import keras.backend as K
+import tensorflow as tf
 from keras import initializers, layers
 
 
@@ -57,23 +58,20 @@ class CapsuleLayer(layers.Layer):
     """
     The capsule layer. It is similar to Dense layer. Dense layer has `in_num` inputs, each is a scalar, the output of the 
     neuron from the former layer, and it has `out_num` output neurons. CapsuleLayer just expand the output of the neuron
-    from scalar to vector. So its input shape = [batch_size, input_num_capsule, input_dim_vector] and output shape = \
-    [batch_size, num_capsule, dim_vector]. For Dense Layer, input_dim_vector = dim_vector = 1.
+    from scalar to vector. So its input shape = [None, input_num_capsule, input_dim_vector] and output shape = \
+    [None, num_capsule, dim_vector]. For Dense Layer, input_dim_vector = dim_vector = 1.
     
     :param num_capsule: number of capsules in this layer
     :param dim_vector: dimension the output vectors of the capsules in this layer
-    :param batch_size: the batch_size during training. This is wired to require batch_size when defining a Layer. But I
-        have not figured out a better way.
     :param num_routings: number of iterations for the routing algorithm
     """
-    def __init__(self, num_capsule, dim_vector, batch_size, num_routing=3,
+    def __init__(self, num_capsule, dim_vector, num_routing=3,
                  kernel_initializer='glorot_uniform',
                  bias_initializer='zeros',
                  **kwargs):
         super(CapsuleLayer, self).__init__(**kwargs)
         self.num_capsule = num_capsule
         self.dim_vector = dim_vector
-        self.batch_size = batch_size
         self.num_routing = num_routing
         self.kernel_initializer = initializers.get(kernel_initializer)
         self.bias_initializer = initializers.get(bias_initializer)
@@ -94,20 +92,29 @@ class CapsuleLayer(layers.Layer):
         self.built = True
 
     def call(self, inputs, **kwargs):
-        # inputs.shape=[batch_size, input_num_capsule, input_dim_vector]
-        # Expand dims to [batch_size, input_num_capsule, 1, 1, input_dim_vector]
+        # inputs.shape=[None, input_num_capsule, input_dim_vector]
+        # Expand dims to [None, input_num_capsule, 1, 1, input_dim_vector]
         inputs_expand = K.expand_dims(K.expand_dims(inputs, 2), 2)
 
         # Replicate num_capsule dimension to prepare being multiplied by W
-        # Now it has shape = [batch_size, input_num_capsule, num_capsule, 1, input_dim_vector]
+        # Now it has shape = [None, input_num_capsule, num_capsule, 1, input_dim_vector]
         inputs_tiled = K.tile(inputs_expand, [1, 1, self.num_capsule, 1, 1])
 
-        # Prepare the dimension of W
-        # Now W has shape  = [batch_size, input_num_capsule, num_capsule, input_dim_vector, dim_vector]
-        w_tiled = K.tile(K.expand_dims(self.W, 0), [self.batch_size, 1, 1, 1, 1])
-
-        # Transformed vectors, shape = [batch_size, input_num_capsule, num_capsule, 1, dim_vector]
-        inputs_hat = K.batch_dot(inputs_tiled, w_tiled, [4, 3])
+        """  
+        # Compute inputs * W by expanding the first dim of W.
+        # More time-consuming and need batch_size.
+        # # Prepare the dimension of W
+        # # Now W has shape  = [batch_size, input_num_capsule, num_capsule, input_dim_vector, dim_vector]
+        # w_tiled = K.tile(K.expand_dims(self.W, 0), [self.batch_size, 1, 1, 1, 1])
+        #
+        # # Transformed vectors, shape = [batch_size, input_num_capsule, num_capsule, 1, dim_vector]
+        # inputs_hat = K.batch_dot(inputs_tiled, w_tiled, [4, 3])
+        """
+        # Compute inputs * W by scanning inputs_tiled on dimension 0.
+        # This is faster but requires Tensorflow.
+        inputs_hat = tf.scan(lambda ac, x: K.batch_dot(x, self.W, [3, 2]),
+                             elems=inputs_tiled,
+                             initializer=K.zeros([self.input_num_capsule, self.num_capsule, 1, self.dim_vector]))
 
         # update self.bias by routing algorithm
         for _ in range(self.num_routing):
@@ -117,7 +124,7 @@ class CapsuleLayer(layers.Layer):
             outputs = squash(outputs)
 
             K.update(self.bias, self.bias + K.sum(inputs_hat * outputs, [0, -2, -1]))
-        return K.reshape(outputs, [self.batch_size, self.num_capsule, self.dim_vector])
+        return K.reshape(outputs, [-1, self.num_capsule, self.dim_vector])
 
     def compute_output_shape(self, input_shape):
         return tuple([None, self.num_capsule, self.dim_vector])
@@ -138,8 +145,7 @@ def PrimaryCap(inputs, dim_vector, n_channels, kernel_size, strides, padding):
     for _ in range(n_channels):
         output = layers.Conv2D(filters=dim_vector, kernel_size=kernel_size, strides=strides, padding=padding)(inputs)
         outputs.append(layers.Reshape([output.get_shape().as_list()[1] ** 2, dim_vector])(output))
-        print(output.get_shape())
-        print(outputs[-1].get_shape())
+
     outputs = layers.Concatenate(axis=1)(outputs)
 
     return layers.Lambda(squash)(outputs)
