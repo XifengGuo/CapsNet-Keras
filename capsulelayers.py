@@ -101,29 +101,43 @@ class CapsuleLayer(layers.Layer):
         inputs_tiled = K.tile(inputs_expand, [1, 1, self.num_capsule, 1, 1])
 
         """  
-        # Compute inputs * W by expanding the first dim of W.
-        # More time-consuming and need batch_size.
-        # # Prepare the dimension of W
-        # # Now W has shape  = [batch_size, input_num_capsule, num_capsule, input_dim_vector, dim_vector]
-        # w_tiled = K.tile(K.expand_dims(self.W, 0), [self.batch_size, 1, 1, 1, 1])
-        #
-        # # Transformed vectors, shape = [batch_size, input_num_capsule, num_capsule, 1, dim_vector]
-        # inputs_hat = K.batch_dot(inputs_tiled, w_tiled, [4, 3])
+        # Compute inputs * W by expanding the first dim of W. More time-consuming and need batch_size.
+        # Prepare the dimension of W
+        # Now W has shape  = [batch_size, input_num_capsule, num_capsule, input_dim_vector, dim_vector]
+        w_tiled = K.tile(K.expand_dims(self.W, 0), [self.batch_size, 1, 1, 1, 1])
+        
+        # Transformed vectors, shape = [batch_size, input_num_capsule, num_capsule, 1, dim_vector]
+        inputs_hat = K.batch_dot(inputs_tiled, w_tiled, [4, 3])
         """
-        # Compute inputs * W by scanning inputs_tiled on dimension 0.
+        # Compute `inputs * W` by scanning inputs_tiled on dimension 0.
         # This is faster but requires Tensorflow.
+        # shape = [None, input_num_capsule, num_capsule, 1, dim_vector]
         inputs_hat = tf.scan(lambda ac, x: K.batch_dot(x, self.W, [3, 2]),
                              elems=inputs_tiled,
                              initializer=K.zeros([self.input_num_capsule, self.num_capsule, 1, self.dim_vector]))
 
-        # update self.bias by routing algorithm
+        # Routing algorithm V1. Use tf.while_loop in a dynamic way.
+        def body(i, b, outputs):
+            c = K.softmax(b)
+            c_expand = K.expand_dims(K.expand_dims(K.expand_dims(c, 2), 2), 0)
+            outputs = K.sum(c_expand * inputs_hat, 1, keepdims=True)
+            outputs = squash(outputs)
+            b = b + K.sum(inputs_hat * outputs, [0, -2, -1])
+            return [i-1, b, outputs]
+
+        cond = lambda i, b, inputs_hat: i > 0
+        loop_vars = [K.constant(self.num_routing), self.bias, K.sum(inputs_hat, 1, keepdims=True)]
+        _, self.bias, outputs = tf.while_loop(cond, body, loop_vars)
+
+        """
+        # Routing algorithm V2. Seems not right. This may duplicate tensors by self.num_routing times.
         for _ in range(self.num_routing):
             c = K.softmax(self.bias)
             c_expand = K.expand_dims(K.expand_dims(K.expand_dims(c, 2), 2), 0)
-            outputs = K.sum(c_expand * inputs_hat, [1, 3], keepdims=True)
+            outputs = K.sum(c_expand * inputs_hat, 1, keepdims=True)
             outputs = squash(outputs)
-
-            K.update(self.bias, self.bias + K.sum(inputs_hat * outputs, [0, -2, -1]))
+            self.bias = self.bias + K.sum(inputs_hat * outputs, [0, -2, -1])
+        """
         return K.reshape(outputs, [-1, self.num_capsule, self.dim_vector])
 
     def compute_output_shape(self, input_shape):

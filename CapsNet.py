@@ -109,10 +109,11 @@ if __name__ == "__main__":
                   loss_weights=[1., args.lam_recon],
                   metrics={'out_caps': 'accuracy'})
 
-    # begin training
+    """
     # Training without data augmentation:
-    # model.fit([x_train, y_train], [y_train, x_train], batch_size=args.batch_size, epochs=args.epochs,
-    #           validation_data=[[x_test, y_test], [y_test, x_test]], callbacks=[log, tb])
+    model.fit([x_train, y_train], [y_train, x_train], batch_size=args.batch_size, epochs=args.epochs,
+              validation_data=[[x_test, y_test], [y_test, x_test]], callbacks=[log, tb, checkpoint])
+    """
 
     # Training with data augmentation. If shift_fraction=0., also no augmentation.
     model.fit_generator(generator=train_generator(x_train, y_train, args.batch_size, args.shift_fraction),
