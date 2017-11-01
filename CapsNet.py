@@ -124,3 +124,6 @@ if __name__ == "__main__":
     model.save(args.save_dir + '/trained_model.h5')
     print('Trained model saved to \'trained_model.h5\'')
 
+    from utils import plot_log
+    plot_log(args.save_dir + '/log.png')
+
