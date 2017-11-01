@@ -1,5 +1,5 @@
 .idea
 __pycache__
 *.h5
-result
-!result/log.*
+result/*
+!result/log.png
