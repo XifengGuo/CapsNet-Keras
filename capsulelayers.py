@@ -115,7 +115,7 @@ class CapsuleLayer(layers.Layer):
         inputs_hat = tf.scan(lambda ac, x: K.batch_dot(x, self.W, [3, 2]),
                              elems=inputs_tiled,
                              initializer=K.zeros([self.input_num_capsule, self.num_capsule, 1, self.dim_vector]))
-
+        """
         # Routing algorithm V1. Use tf.while_loop in a dynamic way.
         def body(i, b, outputs):
             c = K.softmax(b)
@@ -127,17 +127,22 @@ class CapsuleLayer(layers.Layer):
 
         cond = lambda i, b, inputs_hat: i > 0
         loop_vars = [K.constant(self.num_routing), self.bias, K.sum(inputs_hat, 1, keepdims=True)]
-        _, self.bias, outputs = tf.while_loop(cond, body, loop_vars)
+        _, self.bias, outputs = tf.while_loop(cond, body, loop_vars)"""
 
-        """
-        # Routing algorithm V2. Seems not right. This may duplicate tensors by self.num_routing times.
+        # Routing algorithm V2. Use for iteration. V2 and V1 both work without much difference on performance
         for _ in range(self.num_routing):
             c = K.softmax(self.bias)
             c_expand = K.expand_dims(K.expand_dims(K.expand_dims(c, 2), 2), 0)
             outputs = K.sum(c_expand * inputs_hat, 1, keepdims=True)
             outputs = squash(outputs)
-            self.bias = self.bias + K.sum(inputs_hat * outputs, [0, -2, -1])
-        """
+            self.bias = K.update(self.bias, self.bias + K.sum(inputs_hat * outputs, [0, -2, -1]))
+
+        # Handling with no routing scenario. Prior bias will always be zero.
+        if self.num_routing == 0:
+            c = K.softmax(self.bias)
+            c_expand = K.expand_dims(K.expand_dims(K.expand_dims(c, 2), 2), 0)
+            outputs = squash(K.sum(c_expand * inputs_hat, 1, keepdims=True))
+
         return K.reshape(outputs, [-1, self.num_capsule, self.dim_vector])
 
     def compute_output_shape(self, input_shape):
@@ -155,11 +160,13 @@ def PrimaryCap(inputs, dim_vector, n_channels, kernel_size, strides, padding):
     :param padding: 
     :return: output tensor, shape=[None, num_capsule, dim_vector]
     """
-    outputs = []
-    for _ in range(n_channels):
-        output = layers.Conv2D(filters=dim_vector, kernel_size=kernel_size, strides=strides, padding=padding)(inputs)
-        outputs.append(layers.Reshape([output.get_shape().as_list()[1] ** 2, dim_vector])(output))
-
-    outputs = layers.Concatenate(axis=1)(outputs)
-
+    # outputs = []
+    # for _ in range(n_channels):
+    #     output = layers.Conv2D(filters=dim_vector, kernel_size=kernel_size, strides=strides, padding=padding)(inputs)
+    #     outputs.append(layers.Reshape([output.get_shape().as_list()[1] ** 2, dim_vector])(output))
+    #
+    # outputs = layers.Concatenate(axis=1)(outputs)
+    #
+    output = layers.Conv2D(filters=dim_vector*n_channels, kernel_size=kernel_size, strides=strides, padding=padding)(inputs)
+    outputs = layers.Reshape(target_shape=[-1,8])(output)
     return layers.Lambda(squash)(outputs)

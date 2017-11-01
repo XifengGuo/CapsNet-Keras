@@ -83,7 +83,7 @@ if __name__ == "__main__":
     parser.add_argument('--batch_size', default=100, type=int)
     parser.add_argument('--epochs', default=20, type=int)
     parser.add_argument('--lam_recon', default=0.0005, type=float)
-    parser.add_argument('--num_routing', default=3, type=int)
+    parser.add_argument('--num_routing', default=3, type=int)  # num_routing = 0 means not using routing algorithm
     parser.add_argument('--shift_fraction', default=0.1, type=float)
     parser.add_argument('--save_dir', default='./result')
     args = parser.parse_args()
@@ -125,5 +125,5 @@ if __name__ == "__main__":
     print('Trained model saved to \'trained_model.h5\'')
 
     from utils import plot_log
-    plot_log(args.save_dir + '/log.png')
+    plot_log(args.save_dir + '/log.csv')
 

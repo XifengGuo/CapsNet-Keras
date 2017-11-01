@@ -2,6 +2,7 @@ import numpy as np
 from matplotlib import pyplot as plt
 import csv
 
+
 def plot_log(filename):
     # load data
     keys = []
@@ -20,7 +21,7 @@ def plot_log(filename):
 
         values = np.reshape(values, newshape=(50, len(keys)))
         values[:,0] += 1
-    print(keys)
+
     fig = plt.figure(figsize=(4,6))
     fig.subplots_adjust(top=0.95, bottom=0.05, right=0.95)
     fig.add_subplot(211)
@@ -37,11 +38,12 @@ def plot_log(filename):
     plt.legend()
     plt.title('Training and validation accuracy')
 
-    print(values)
     # fig.savefig('result/log.png')
     plt.show()
 
 
+if __name__=="__main__":
+    plot_log('result/log.csv')
 
 
 
