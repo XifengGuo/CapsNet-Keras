@@ -85,7 +85,8 @@ def train(model, data, args):
     log = callbacks.CSVLogger(args.save_dir + '/log.csv')
     tb = callbacks.TensorBoard(log_dir=args.save_dir + '/tensorboard-logs',
                                batch_size=args.batch_size, histogram_freq=args.debug)
-    checkpoint = callbacks.ModelCheckpoint(args.save_dir + '/weights-{epoch:02d}.h5', save_best_only=True, verbose=1)
+    checkpoint = callbacks.ModelCheckpoint(args.save_dir + '/weights-{epoch:02d}.h5',
+                                           save_best_only=True, save_weights_only=True, verbose=1)
     lr_decay = callbacks.LearningRateScheduler(schedule=lambda epoch: 0.001 * np.exp(-epoch / 10.))
 
     # compile the model
@@ -117,14 +118,18 @@ def train(model, data, args):
                         callbacks=[log, tb, checkpoint, lr_decay])
     # -----------------------------------End: Training with data augmentation -----------------------------------#
 
-    model.save(args.save_dir + '/trained_model.h5')
-    print('Trained model saved to \'trained_model.h5\'')
+    model.save_weights(args.save_dir + '/trained_model.h5')
+    print('Trained model saved to \'%s/trained_model.h5\'' % args.save_dir)
+
+    from utils import plot_log
+    plot_log(args.save_dir + '/log.csv', show=True)
+
     return model
 
 
 def test(model, data):
     x_test, y_test = data
-    y_pred, x_recon = model.predict([x_test, y_test])
+    y_pred, x_recon = model.predict([x_test, y_test], batch_size=100)
     print('-'*50)
     print('Test acc:', np.sum(np.argmax(y_pred, 1) == np.argmax(y_test, 1))/y_test.shape[0])
 
@@ -189,12 +194,11 @@ if __name__ == "__main__":
     plot_model(model, to_file=args.save_dir+'/model.png', show_shapes=True)
 
     # train or test
+    if args.weights is not None:  # init the model weights with provided one
+        model.load_weights(args.weights)
     if args.is_training:
         train(model=model, data=((x_train, y_train), (x_test, y_test)), args=args)
-    elif args.weights is not None:
-        model.load_weights(args.weights)
+    else:  # as long as weights are given, will run testing
+        if args.weights is None:
+            print('No weights are provided. Will test using random initialized weights.')
         test(model=model, data=(x_test, y_test))
-
-    from utils import plot_log
-    plot_log(args.save_dir + '/log.csv', show=args.is_training)
-

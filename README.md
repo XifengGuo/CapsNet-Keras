@@ -5,8 +5,8 @@ Now `Val_acc>99.5%`. A Keras implementation of CapsNet in Hinton's paper [Dynami
 **Recent updates:**
 - Modified the routing algorithm by fixing 
 [#1](https://github.com/XifengGuo/CapsNet-Keras/issues/1).
-Thanks so much @[InnerPeace-Wu](https://github.com/InnerPeace-Wu)
-@[iwasaki-kenta](https://github.com/iwasaki-kenta)
+Thanks to [@InnerPeace-Wu](https://github.com/InnerPeace-Wu)
+[@iwasaki-kenta](https://github.com/iwasaki-kenta)
 - Wrote detailed comments.
 
 **TODO**
@@ -63,11 +63,12 @@ The testing data is same as the validation data. It will be easy to test on new 
 just change the code as you want (Of course you can do it!!!)
 
 If sadly you do not have a good computer to train the model (sad face), you can *download
-a model I trained* from `https://pan.baidu.com/s/1sk93FFf`
+a model I trained* from https://pan.baidu.com/s/1hsF2bvY
 
 ## Results
 
-**Main result by launching** `python capsulenet.py`:
+**Main result**   
+by launching `python capsulenet.py`:
 The epoch=1 means the result is evaluated after training one epoch.
 In the saved log file, it starts from 0.
 
@@ -94,7 +95,7 @@ Every epoch consumes about `110s` on a single GTX 1070 GPU.
 ***NOTE:*** The training is still under-fitting, welcome to try for your own.   
 The learning rate decay is not fine-tuned, I just tried this one. You can tune this.
 
-**Testing result**
+**Testing result**   
 The result by launching   
 `python capsulenet.py --is_training 0 --weights result/trained_model.h5`   
 ![](real_and_recon.png)
@@ -104,21 +105,24 @@ The result by launching
 
 ## Other Implementations
 - TensorFlow:
-  - [CapsNet-Tensorflow](https://github.com/naturomics/CapsNet-Tensorflow.git): 
-Very good implementation. I referred to this repository in my code.
-  - [CapsNet-tensorflow](https://github.com/InnerPeace-Wu/CapsNet-tensorflow)
-  - [tf_CapsNet_simple](https://github.com/LaoDar/tf_CapsNet_simple)
+  - [naturomics/CapsNet-Tensorflow](https://github.com/naturomics/CapsNet-Tensorflow.git)   
+  Very good implementation. I referred to this repository in my code.
+  - [InnerPeace-Wu/CapsNet-tensorflow](https://github.com/InnerPeace-Wu/CapsNet-tensorflow)   
+  I referred to the use of tf.scan when optimizing my CapsuleLayer.
+  - [LaoDar/tf_CapsNet_simple](https://github.com/LaoDar/tf_CapsNet_simple)
 
 - PyTorch:
-  - [CapsNet-PyTorch](https://github.com/nishnik/CapsNet-PyTorch.git)
-  - [capsnet.pytorch](https://github.com/andreaazzini/capsnet.pytorch.git)
-  - [CapsNet](https://github.com/leftthomas/CapsNet)
+  - [nishnik/CapsNet-PyTorch](https://github.com/nishnik/CapsNet-PyTorch.git)
+  - [timomernick/pytorch-capsule](https://github.com/timomernick/pytorch-capsule)
+  - [gram-ai/capsule-networks](https://github.com/gram-ai/capsule-networks)
+  - [andreaazzini/capsnet.pytorch](https://github.com/andreaazzini/capsnet.pytorch.git)
+  - [leftthomas/CapsNet](https://github.com/leftthomas/CapsNet)
   
 - MXNet:
-  - [CapsNet_Mxnet](https://github.com/AaronLeong/CapsNet_Mxnet)
+  - [AaronLeong/CapsNet_Mxnet](https://github.com/AaronLeong/CapsNet_Mxnet)
   
 - Lasagne (Theano):
-  - [CapsNet-Lasagne](https://github.com/DeniskaMazur/CapsNet-Lasagne)
+  - [DeniskaMazur/CapsNet-Lasagne](https://github.com/DeniskaMazur/CapsNet-Lasagne)
 
 - Chainer:
-  - [dynamic_routing_between_capsules](https://github.com/soskek/dynamic_routing_between_capsules)
+  - [soskek/dynamic_routing_between_capsules](https://github.com/soskek/dynamic_routing_between_capsules)
