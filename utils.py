@@ -3,7 +3,7 @@ from matplotlib import pyplot as plt
 import csv
 
 
-def plot_log(filename):
+def plot_log(filename, show=True):
     # load data
     keys = []
     values = []
@@ -19,7 +19,7 @@ def plot_log(filename):
             for _, value in row.items():
                 values.append(float(value))
 
-        values = np.reshape(values, newshape=(50, len(keys)))
+        values = np.reshape(values, newshape=(-1, len(keys)))
         values[:,0] += 1
 
     fig = plt.figure(figsize=(4,6))
@@ -39,7 +39,8 @@ def plot_log(filename):
     plt.title('Training and validation accuracy')
 
     # fig.savefig('result/log.png')
-    plt.show()
+    if show:
+        plt.show()
 
 
 if __name__=="__main__":

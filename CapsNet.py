@@ -10,7 +10,7 @@ Result:
     
 Author: Xifeng Guo, E-mail: guoxifeng1990@163.com, Github: https://github.com/XifengGuo/CapsNet-Keras
 """
-from keras import layers, models
+from keras import layers, models, optimizers
 from keras import backend as K
 from keras.utils import to_categorical
 from capsulelayers import CapsuleLayer, PrimaryCap, Length, Mask
@@ -22,7 +22,7 @@ def CapsNet(input_shape, n_class, num_routing):
 
     primarycaps = PrimaryCap(conv1, dim_vector=8, n_channels=32, kernel_size=9, strides=2, padding='valid')
 
-    digitcaps = CapsuleLayer(num_capsule=n_class, dim_vector=16, num_routing=num_routing)(primarycaps)
+    digitcaps = CapsuleLayer(num_capsule=n_class, dim_vector=16, num_routing=num_routing, name='digitcaps')(primarycaps)
 
     out_caps = Length(name='out_caps')(digitcaps)
 
@@ -65,17 +65,10 @@ def load_mnist():
 
 if __name__ == "__main__":
     import numpy as np
+    import os
     from keras.preprocessing.image import ImageDataGenerator
     from keras import callbacks
     from keras.utils.vis_utils import plot_model
-
-    def train_generator(x, y, batch_size, shift_fraction=0.):
-        train_datagen = ImageDataGenerator(width_shift_range=shift_fraction,
-                                           height_shift_range=shift_fraction)  # shift up to 2 pixel for MNIST
-        generator = train_datagen.flow(x, y, batch_size=batch_size)
-        while 1:
-            x_batch, y_batch = generator.next()
-            yield ([x_batch, y_batch], [y_batch, x_batch])
 
     # setting the hyper parameters
     import argparse
@@ -83,27 +76,28 @@ if __name__ == "__main__":
     parser.add_argument('--batch_size', default=100, type=int)
     parser.add_argument('--epochs', default=20, type=int)
     parser.add_argument('--lam_recon', default=0.0005, type=float)
-    parser.add_argument('--num_routing', default=3, type=int)  # num_routing = 0 means not using routing algorithm
+    parser.add_argument('--num_routing', default=3, type=int)  # num_routing should > 0
     parser.add_argument('--shift_fraction', default=0.1, type=float)
     parser.add_argument('--save_dir', default='./result')
     args = parser.parse_args()
     print(args)
+    if not os.path.exists(args.save_dir):
+        os.makedirs(args.save_dir)
 
     # load data
     (x_train, y_train), (x_test, y_test) = load_mnist()
 
     # callbacks
     log = callbacks.CSVLogger(args.save_dir + '/log.csv')
-    tb = callbacks.TensorBoard(log_dir=args.save_dir+'/tensorboard-logs', batch_size=args.batch_size)
+    tb = callbacks.TensorBoard(log_dir=args.save_dir+'/tensorboard-logs', batch_size=args.batch_size, write_images=True)
     checkpoint = callbacks.ModelCheckpoint(args.save_dir + '/weights-{epoch:02d}.h5', save_best_only=True, verbose=1)
-
+    lr_decay = callbacks.LearningRateScheduler(schedule=lambda epoch: 0.001*np.exp(-epoch/10.))
     # define model
     model = CapsNet(input_shape=[28, 28, 1],
                     n_class=len(np.unique(np.argmax(y_train, 1))),
                     num_routing=args.num_routing)
     model.summary()
     plot_model(model, to_file=args.save_dir+'/model.png', show_shapes=True)
-
     model.compile(optimizer='adam',
                   loss=[margin_loss, 'mse'],
                   loss_weights=[1., args.lam_recon],
@@ -115,15 +109,23 @@ if __name__ == "__main__":
               validation_data=[[x_test, y_test], [y_test, x_test]], callbacks=[log, tb, checkpoint])
     """
 
+    def train_generator(x, y, batch_size, shift_fraction=0.):
+        train_datagen = ImageDataGenerator(width_shift_range=shift_fraction,
+                                           height_shift_range=shift_fraction)  # shift up to 2 pixel for MNIST
+        generator = train_datagen.flow(x, y, batch_size=batch_size)
+        while 1:
+            x_batch, y_batch = generator.next()
+            yield ([x_batch, y_batch], [y_batch, x_batch])
+
     # Training with data augmentation. If shift_fraction=0., also no augmentation.
     model.fit_generator(generator=train_generator(x_train, y_train, args.batch_size, args.shift_fraction),
                         steps_per_epoch=int(y_train.shape[0] / args.batch_size),
                         epochs=args.epochs,
                         validation_data=[[x_test, y_test], [y_test, x_test]],
-                        callbacks=[log, tb, checkpoint])
+                        callbacks=[log, tb, checkpoint, lr_decay])
     model.save(args.save_dir + '/trained_model.h5')
     print('Trained model saved to \'trained_model.h5\'')
 
     from utils import plot_log
-    plot_log(args.save_dir + '/log.csv')
+    plot_log(args.save_dir + '/log.csv', show=False)
 

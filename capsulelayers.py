@@ -85,13 +85,14 @@ class CapsuleLayer(layers.Layer):
             shape=[self.input_num_capsule, self.num_capsule, self.input_dim_vector, self.dim_vector],
             initializer=self.kernel_initializer,
             name='W')
-        self.bias = self.add_weight(shape=[self.input_num_capsule, self.num_capsule],
-                                    initializer=self.bias_initializer,
-                                    name='bias',
-                                    trainable=False)
+        self.bias = K.zeros(shape=[1, self.input_num_capsule, self.num_capsule, 1, 1])
+        # self.bias = self.add_weight(shape=[self.input_num_capsule, self.num_capsule],
+        #                             initializer=self.bias_initializer,
+        #                             name='bias',
+        #                             trainable=False)
         self.built = True
 
-    def call(self, inputs, **kwargs):
+    def call(self, inputs, training=None):
         # inputs.shape=[None, input_num_capsule, input_dim_vector]
         # Expand dims to [None, input_num_capsule, 1, 1, input_dim_vector]
         inputs_expand = K.expand_dims(K.expand_dims(inputs, 2), 2)
@@ -111,7 +112,7 @@ class CapsuleLayer(layers.Layer):
         """
         # Compute `inputs * W` by scanning inputs_tiled on dimension 0.
         # This is faster but requires Tensorflow.
-        # shape = [None, input_num_capsule, num_capsule, 1, dim_vector]
+        # inputs_hat.shape = [None, input_num_capsule, num_capsule, 1, dim_vector]
         inputs_hat = tf.scan(lambda ac, x: K.batch_dot(x, self.W, [3, 2]),
                              elems=inputs_tiled,
                              initializer=K.zeros([self.input_num_capsule, self.num_capsule, 1, self.dim_vector]))
@@ -130,18 +131,15 @@ class CapsuleLayer(layers.Layer):
         _, self.bias, outputs = tf.while_loop(cond, body, loop_vars)"""
 
         # Routing algorithm V2. Use for iteration. V2 and V1 both work without much difference on performance
-        for _ in range(self.num_routing):
-            c = K.softmax(self.bias)
-            c_expand = K.expand_dims(K.expand_dims(K.expand_dims(c, 2), 2), 0)
-            outputs = K.sum(c_expand * inputs_hat, 1, keepdims=True)
-            outputs = squash(outputs)
-            self.bias = K.update(self.bias, self.bias + K.sum(inputs_hat * outputs, [0, -2, -1]))
+        assert self.num_routing > 0, 'The num_routing should be > 0.'
+        for i in range(self.num_routing):
+            c = tf.nn.softmax(self.bias, dim=2)  # dim=2 is the num_capsule dimension
+            # outputs.shape=[None, 1, num_capsule, 1, dim_vector]
+            outputs = squash(K.sum(c * inputs_hat, 1, keepdims=True))
 
-        # Handling with no routing scenario. Prior bias will always be zero.
-        if self.num_routing == 0:
-            c = K.softmax(self.bias)
-            c_expand = K.expand_dims(K.expand_dims(K.expand_dims(c, 2), 2), 0)
-            outputs = squash(K.sum(c_expand * inputs_hat, 1, keepdims=True))
+            # last iteration needs not compute bias which will not be passed to the graph any more anyway.
+            if i != self.num_routing - 1:
+                self.bias += K.sum(inputs_hat * outputs, -1, keepdims=True)
 
         return K.reshape(outputs, [-1, self.num_capsule, self.dim_vector])
 
