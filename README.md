@@ -102,6 +102,9 @@ The result by launching
 ![](result/model.png)
 
 ## Other Implementations
+- Kaggle (this version as self-contained notebook):
+  - [MNIST Dataset](https://www.kaggle.com/kmader/capsulenet-on-mnist) running on the standard MNIST and predicting for test data
+  - [MNIST Fashion](https://www.kaggle.com/kmader/capsulenet-on-fashion-mnist) running on the more challenging Fashion images.
 - TensorFlow:
   - [naturomics/CapsNet-Tensorflow](https://github.com/naturomics/CapsNet-Tensorflow.git)   
   Very good implementation. I referred to this repository in my code.
