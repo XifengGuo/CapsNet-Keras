@@ -1,13 +1,11 @@
 # CapsNet-Keras
+[![License](https://img.shields.io/github/license/mashape/apistatus.svg?maxAge=2592000)](https://github.com/XifengGuo/CapsNet-Keras/blob/master/LICENSE)
 
-Now `Val_acc>99.5%`. A Keras implementation of CapsNet in Hinton's paper [Dynamic Routing Between Capsules](https://arxiv.org/abs/1710.09829)
+Now `Val_acc>99.5%`. A Keras implementation of CapsNet in the paper:   
+[Sara Sabour, Nicholas Frosst, Geoffrey E Hinton. Dynamic Routing Between Capsules. NIPS 2017](https://arxiv.org/abs/1710.09829)
 
 **Recent updates:**
-- Modified the routing algorithm by fixing 
-[#1](https://github.com/XifengGuo/CapsNet-Keras/issues/1).
-Thanks to [@InnerPeace-Wu](https://github.com/InnerPeace-Wu)
-[@iwasaki-kenta](https://github.com/iwasaki-kenta)
-- Wrote detailed comments.
+- Released v0.1 to use. No frequent changes will be made.
 
 **TODO**
 - Keep debugging to improve the accuracy. The learning rate decay can be tuned.
