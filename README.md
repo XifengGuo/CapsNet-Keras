@@ -20,6 +20,8 @@ I'll figure out what's the problem.
 ## Requirements
 - [Keras](https://github.com/fchollet/keras) 
 - matplotlib
+- graphviz
+- pydot
 
 ## Usage
 
