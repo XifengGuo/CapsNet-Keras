@@ -16,7 +16,7 @@ Result:
 Author: Xifeng Guo, E-mail: `guoxifeng1990@163.com`, Github: `https://github.com/XifengGuo/CapsNet-Keras`
 """
 
-from keras import layers, models
+from keras import layers, models, optimizers
 from keras import backend as K
 from keras.utils import to_categorical
 from capsulelayers import CapsuleLayer, PrimaryCap, Length, Mask
@@ -25,7 +25,7 @@ from capsulelayers import CapsuleLayer, PrimaryCap, Length, Mask
 def CapsNet(input_shape, n_class, num_routing):
     """
     A Capsule Network on MNIST.
-    :param input_shape: data shape, 4d, [None, width, height, channels]
+    :param input_shape: data shape, 3d, [width, height, channels]
     :param n_class: number of classes
     :param num_routing: number of routing iterations
     :return: A Keras Model with 2 inputs and 2 outputs
@@ -50,8 +50,8 @@ def CapsNet(input_shape, n_class, num_routing):
     masked = Mask()([digitcaps, y])  # The true label is used to mask the output of capsule layer.
     x_recon = layers.Dense(512, activation='relu')(masked)
     x_recon = layers.Dense(1024, activation='relu')(x_recon)
-    x_recon = layers.Dense(784, activation='sigmoid')(x_recon)
-    x_recon = layers.Reshape(target_shape=[28, 28, 1], name='out_recon')(x_recon)
+    x_recon = layers.Dense(np.prod(input_shape), activation='sigmoid')(x_recon)
+    x_recon = layers.Reshape(target_shape=input_shape, name='out_recon')(x_recon)
 
     # two-input-two-output keras Model
     return models.Model([x, y], [out_caps, x_recon])
@@ -87,10 +87,10 @@ def train(model, data, args):
                                batch_size=args.batch_size, histogram_freq=args.debug)
     checkpoint = callbacks.ModelCheckpoint(args.save_dir + '/weights-{epoch:02d}.h5',
                                            save_best_only=True, save_weights_only=True, verbose=1)
-    lr_decay = callbacks.LearningRateScheduler(schedule=lambda epoch: 0.001 * np.exp(-epoch / 10.))
+    lr_decay = callbacks.LearningRateScheduler(schedule=lambda epoch: args.lr * (0.9 ** epoch))
 
     # compile the model
-    model.compile(optimizer='adam',
+    model.compile(optimizer=optimizers.Adam(lr=args.lr),
                   loss=[margin_loss, 'mse'],
                   loss_weights=[1., args.lam_recon],
                   metrics={'out_caps': 'accuracy'})
@@ -98,10 +98,10 @@ def train(model, data, args):
     """
     # Training without data augmentation:
     model.fit([x_train, y_train], [y_train, x_train], batch_size=args.batch_size, epochs=args.epochs,
-              validation_data=[[x_test, y_test], [y_test, x_test]], callbacks=[log, tb, checkpoint])
+              validation_data=[[x_test, y_test], [y_test, x_test]], callbacks=[log, tb, checkpoint, lr_decay])
     """
 
-    # -----------------------------------Begin: Training with data augmentation -----------------------------------#
+    # Begin: Training with data augmentation ---------------------------------------------------------------------#
     def train_generator(x, y, batch_size, shift_fraction=0.):
         train_datagen = ImageDataGenerator(width_shift_range=shift_fraction,
                                            height_shift_range=shift_fraction)  # shift up to 2 pixel for MNIST
@@ -116,7 +116,7 @@ def train(model, data, args):
                         epochs=args.epochs,
                         validation_data=[[x_test, y_test], [y_test, x_test]],
                         callbacks=[log, tb, checkpoint, lr_decay])
-    # -----------------------------------End: Training with data augmentation -----------------------------------#
+    # End: Training with data augmentation -----------------------------------------------------------------------#
 
     model.save_weights(args.save_dir + '/trained_model.h5')
     print('Trained model saved to \'%s/trained_model.h5\'' % args.save_dir)
@@ -170,14 +170,15 @@ if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser()
     parser.add_argument('--batch_size', default=100, type=int)
-    parser.add_argument('--epochs', default=20, type=int)
-    parser.add_argument('--lam_recon', default=0.0005, type=float)
+    parser.add_argument('--epochs', default=30, type=int)
+    parser.add_argument('--lam_recon', default=0.392, type=float)  # 784 * 0.0005, paper uses sum of SE, here uses MSE
     parser.add_argument('--num_routing', default=3, type=int)  # num_routing should > 0
     parser.add_argument('--shift_fraction', default=0.1, type=float)
     parser.add_argument('--debug', default=0, type=int)  # debug>0 will save weights by TensorBoard
     parser.add_argument('--save_dir', default='./result')
     parser.add_argument('--is_training', default=1, type=int)
     parser.add_argument('--weights', default=None)
+    parser.add_argument('--lr', default=0.001, type=float)
     args = parser.parse_args()
     print(args)
     if not os.path.exists(args.save_dir):

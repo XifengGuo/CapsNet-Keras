@@ -1,55 +1,67 @@
 # CapsNet-Keras
 [![License](https://img.shields.io/github/license/mashape/apistatus.svg?maxAge=2592000)](https://github.com/XifengGuo/CapsNet-Keras/blob/master/LICENSE)
 
-Now `Val_acc>99.5%`. A Keras implementation of CapsNet in the paper:   
+Now `test error < 0.4%`. A Keras implementation of CapsNet in the paper:   
 [Sara Sabour, Nicholas Frosst, Geoffrey E Hinton. Dynamic Routing Between Capsules. NIPS 2017](https://arxiv.org/abs/1710.09829)
 
+**Differences with the paper:**   
+- We use the learning rate decay with `decay factor = 0.9` and `step = 1 epoch`,    
+while the paper did not give the detailed parameters.
+- We only report the test errors after `30 epochs` training (still under-fitting).   
+In the paper, I suppose they trained for `1250 epochs` according to Figure A.1?
+- We use MSE (mean squared error) as the reconstruction loss and 
+the coefficient for the loss is `lam_recon=0.0005*784=0.392`.   
+This should be **equivalent** with using SSE (sum squared error) and `lam_recon=0.0005` as in the paper.
+
 **Recent updates:**
-- Released v0.1 to use. No frequent changes will be made.
+- Change the default value of lam_recon from 0.0005 to 0.392. This is because the reconstruction
+loss is SSE in paper but MSE in our implementation. 
+We believe that MSE is more robust to the dimension of input images.
+- Report test errors on MNIST
 
 **TODO**
-- Keep debugging to improve the accuracy. The learning rate decay can be tuned.
-- The model has 8M parameters, while the paper said it should be 11M.
-I'll figure out what's the problem.
-- It is time to do something with CapsuleNet...(LOL)
+- ~~The model has 8M parameters, while the paper said it should be 11M.~~   
+I have figured out the reason: 11M parameters are for the CapsuleNet on MultiMNIST where the
+image size is 36x36. The CapsuleNet on MNIST should indeed have 8M parameters. 
+- I'll stop pursuing higher accuracy on MNIST. 
+It is time to explore the interacting characteristics of CapsuleNet.
 
-**Contribution**
-- Your contribution to the repo is welcome. Open an issue or contact me with 
-`guoxifeng1990@163.com` or WeChat (微信号) `wenlong-guo`.
+**Contacts**
+- Your contributions to the repo are always welcome. 
+Open an issue or contact me with E-mail `guoxifeng1990@163.com` or WeChat `wenlong-guo`.
 
-## Requirements
-- [Keras](https://github.com/fchollet/keras) 
-- matplotlib
 
 ## Usage
 
-### Training
-**Step 1.**
-Install Keras:
-
-`$ pip install keras`
-
-**Step 2.** 
-Clone this repository with ``git``.
-
+**Step 1.
+Install [Keras](https://github.com/fchollet/keras) 
+with [TensorFlow](https://github.com/tensorflow/tensorflow) backend.**
 ```
-$ git clone https://github.com/xifengguo/CapsNet-Keras.git
-$ cd CapsNet-Keras
+pip install tensorflow-gpu
+pip install keras
 ```
 
-**Step 3.** 
-Training:
+**Step 2. Clone this repository to local.**
+```
+git clone https://github.com/XifengGuo/CapsNet-Keras.git
+cd CapsNet-Keras
+```
+
+**Step 3. Train a CapsNet on MNIST**  
+
+Training with default settings:
 ```
 $ python capsulenet.py
 ```
 Training with one routing iteration (default 3).   
+```
+$ python capsulenet.py --num_routing 1
+```
 
-`$ python capsulenet.py --num_routing 1`
-
-Other parameters include `batch_size, epochs, lam_recon, shift_fraction, save_dir` can 
+Other parameters include `batch_size, epochs, lam_recon, shift_fraction, save_dir` can be
 passed to the function in the same way. Please refer to `capsulenet.py`
 
-### Testing
+**Step 4. Test a pre-trained CapsNet model**
 
 Suppose you have trained a model using the above command, then the trained model will be
 saved to `result/trained_model.h5`. Now just launch the following command to get test results.
@@ -58,47 +70,52 @@ $ python capsulenet.py --is_training 0 --weights result/trained_model.h5
 ```
 It will output the testing accuracy and show the reconstructed images.
 The testing data is same as the validation data. It will be easy to test on new data, 
-just change the code as you want (Of course you can do it!!!)
+just change the code as you want.
 
-If sadly you do not have a good computer to train the model (sad face), you can *download
-a model I trained* from https://pan.baidu.com/s/1hsF2bvY
+You can also just *download a model I trained* from https://pan.baidu.com/s/1o7Hb9fO
 
 ## Results
 
-**Main result**   
-by launching `python capsulenet.py`:
-The epoch=1 means the result is evaluated after training one epoch.
-In the saved log file, it starts from 0.
+**Test Errors**   
 
-   Epoch     |   1   |   5  |  10  |  15  |  20    
-   :---------|:------:|:---:|:----:|:----:|:----:
-   train_acc |  90.65| 98.95| 99.36| 99.63| 99.75 
-   vali_acc  |  98.51| 99.30| 99.34| 99.49| 99.59
-  
-Losses and accuracies:   
-![](result/log.png) 
-
-
-**Results with one routing iteration**   
-by launching `python CapsNet.py --num_routing 1`   
-
-   Epoch     |   1   |   5  |  10  |  15  |  20    
-   :---------|:------:|:---:|:----:|:----:|:----:
-   train_acc |  89.64| 99.02| 99.42| 99.66| 99.73 
-   vali_acc  |  98.55| 99.33| 99.43| 99.57| 99.58
+CapsNet classification test **error** on MNIST. Average and standard deviation results are
+reported by 3 trials. The results can be reproduced by launching the following commands.   
+ ```
+ python capsulenet.py --num_routing 1 --lam_recon 0.0    #CapsNet-v1   
+ python capsulenet.py --num_routing 1 --lam_recon 0.392  #CapsNet-v2
+ python capsulenet.py --num_routing 3 --lam_recon 0.0    #CapsNet-v3 
+ python capsulenet.py --num_routing 3 --lam_recon 0.392  #CapsNet-v4
+```
+   Method     |   Routing   |   Reconstruction  |  MNIST (%)  |  *Paper*    
+   :---------|:------:|:---:|:----:|:----:
+   Baseline |  -- | -- | --             | *0.39* 
+   CapsNet-v1 |  1 | no | 0.39 (0.024)  | *0.34 (0.032)* 
+   CapsNet-v2  |  1 | yes | 0.37 (0.022)| *0.29 (0.011)*
+   CapsNet-v3 |  3 | no | 0.40 (0.016)  | *0.35 (0.036)*
+   CapsNet-v4  |  3 | yes| 0.34 (0.009) | *0.25 (0.005)*
    
+Losses and accuracies:   
+![](result/log.png)
 
-Every epoch consumes about `110s` on a single GTX 1070 GPU.   
 
-***NOTE:*** The training is still under-fitting, welcome to try for your own.   
-The learning rate decay is not fine-tuned, I just tried this one. You can tune this.
+**Training Speed**  
 
-**Testing result**   
-The result by launching   
-`python capsulenet.py --is_training 0 --weights result/trained_model.h5`   
+About `110s / epoch` on a single GTX 1070 GPU.   
+
+
+**Reconstruction result**  
+
+The result of CapsNet-v4 by launching   
+```
+python capsulenet.py --is_training 0 --weights result/trained_model.h5
+```
+Digits at top 5 rows are real images from MNIST and 
+digits at bottom are corresponding reconstructed images.
+
 ![](real_and_recon.png)
 
-**The model structure:**   
+**The model structure:**  
+ 
 ![](result/model.png)
 
 ## Other Implementations
