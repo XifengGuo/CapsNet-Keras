@@ -7,25 +7,26 @@ uncommenting them and commenting their counterparts.
 Author: Xifeng Guo, E-mail: `guoxifeng1990@163.com`, Github: `https://github.com/XifengGuo/CapsNet-Keras`
 """
 
-import keras.backend as K
 import tensorflow as tf
-from keras import initializers, layers
+from tensorflow import keras
 
 
-class Length(layers.Layer):
+
+
+class Length(keras.layers.Layer):
     """
     Compute the length of vectors. This is used to compute a Tensor that has the same shape with y_true in margin_loss
     inputs: shape=[dim_1, ..., dim_{n-1}, dim_n]
     output: shape=[dim_1, ..., dim_{n-1}]
     """
     def call(self, inputs, **kwargs):
-        return K.sqrt(K.sum(K.square(inputs), -1))
+        return tf.sqrt(tf.reduce_sum(tf.square(inputs), -1))
 
     def compute_output_shape(self, input_shape):
         return input_shape[:-1]
 
 
-class Mask(layers.Layer):
+class Mask(keras.layers.Layer):
     """
     Mask a Tensor with shape=[None, d1, d2] by the max value in axis=1.
     Output shape: [None, d2]
@@ -38,11 +39,11 @@ class Mask(layers.Layer):
         else:  # if no true label, mask by the max length of vectors of capsules
             x = inputs
             # Enlarge the range of values in x to make max(new_x)=1 and others < 0
-            x = (x - K.max(x, 1, True)) / K.epsilon() + 1
-            mask = K.clip(x, 0, 1)  # the max value in x clipped to 1 and other to 0
+            x = (x - tf.reduce_max(x, 1, True)) / keras.backend.epsilon() + 1
+            mask = tf.clip_by_value(x, 0, 1)  # the max value in x clipped to 1 and other to 0
 
         # masked inputs, shape = [batch_size, dim_vector]
-        inputs_masked = K.batch_dot(inputs, mask, [1, 1])
+        inputs_masked = keras.backend.batch_dot(inputs, mask, [1, 1])
         return inputs_masked
 
     def compute_output_shape(self, input_shape):
@@ -59,12 +60,12 @@ def squash(vectors, axis=-1):
     :param axis: the axis to squash
     :return: a Tensor with same shape as input vectors
     """
-    s_squared_norm = K.sum(K.square(vectors), axis, keepdims=True)
-    scale = s_squared_norm / (1 + s_squared_norm) / K.sqrt(s_squared_norm + K.epsilon())
+    s_squared_norm = tf.reduce_sum(tf.square(vectors), axis, keep_dims=True)
+    scale = s_squared_norm / (1 + s_squared_norm) / tf.sqrt(s_squared_norm + keras.backend.epsilon())
     return scale * vectors
 
 
-class CapsuleLayer(layers.Layer):
+class CapsuleLayer(keras.layers.Layer):
     """
     The capsule layer. It is similar to Dense layer. Dense layer has `in_num` inputs, each is a scalar, the output of the 
     neuron from the former layer, and it has `out_num` output neurons. CapsuleLayer just expand the output of the neuron
@@ -83,8 +84,8 @@ class CapsuleLayer(layers.Layer):
         self.num_capsule = num_capsule
         self.dim_vector = dim_vector
         self.num_routing = num_routing
-        self.kernel_initializer = initializers.get(kernel_initializer)
-        self.bias_initializer = initializers.get(bias_initializer)
+        self.kernel_initializer = keras.initializers.get(kernel_initializer)
+        self.bias_initializer = keras.initializers.get(bias_initializer)
 
     def build(self, input_shape):
         assert len(input_shape) >= 3, "The input Tensor should have shape=[None, input_num_capsule, input_dim_vector]"
@@ -106,11 +107,11 @@ class CapsuleLayer(layers.Layer):
     def call(self, inputs, training=None):
         # inputs.shape=[None, input_num_capsule, input_dim_vector]
         # Expand dims to [None, input_num_capsule, 1, 1, input_dim_vector]
-        inputs_expand = K.expand_dims(K.expand_dims(inputs, 2), 2)
+        inputs_expand = tf.expand_dims(tf.expand_dims(inputs, 2), 2)
 
         # Replicate num_capsule dimension to prepare being multiplied by W
         # Now it has shape = [None, input_num_capsule, num_capsule, 1, input_dim_vector]
-        inputs_tiled = K.tile(inputs_expand, [1, 1, self.num_capsule, 1, 1])
+        inputs_tiled = tf.tile(inputs_expand, [1, 1, self.num_capsule, 1, 1])
 
         """ 
         # Begin: inputs_hat computation V1 ---------------------------------------------------------------------#
@@ -126,9 +127,9 @@ class CapsuleLayer(layers.Layer):
         # Begin: inputs_hat computation V2 ---------------------------------------------------------------------#
         # Compute `inputs * W` by scanning inputs_tiled on dimension 0. This is faster but requires Tensorflow.
         # inputs_hat.shape = [None, input_num_capsule, num_capsule, 1, dim_vector]
-        inputs_hat = tf.scan(lambda ac, x: K.batch_dot(x, self.W, [3, 2]),
+        inputs_hat = tf.scan(lambda ac, x: keras.backend.batch_dot(x, self.W, [3, 2]),
                              elems=inputs_tiled,
-                             initializer=K.zeros([self.input_num_capsule, self.num_capsule, 1, self.dim_vector]))
+                             initializer=tf.zeros([self.input_num_capsule, self.num_capsule, 1, self.dim_vector]))
         # End: inputs_hat computation V2 ---------------------------------------------------------------------#
         """
         # Begin: routing algorithm V1, dynamic ------------------------------------------------------------#
@@ -154,16 +155,16 @@ class CapsuleLayer(layers.Layer):
         for i in range(self.num_routing):
             c = tf.nn.softmax(self.bias, dim=2)  # dim=2 is the num_capsule dimension
             # outputs.shape=[None, 1, num_capsule, 1, dim_vector]
-            outputs = squash(K.sum(c * inputs_hat, 1, keepdims=True))
+            outputs = squash(tf.reduce_sum(c * inputs_hat, 1, keep_dims=True))
 
             # last iteration needs not compute bias which will not be passed to the graph any more anyway.
             if i != self.num_routing - 1:
                 # self.bias = K.update_add(self.bias, K.sum(inputs_hat * outputs, [0, -1], keepdims=True))
-                self.bias += K.sum(inputs_hat * outputs, -1, keepdims=True)
+                self.bias += tf.reduce_sum(inputs_hat * outputs, -1, keep_dims=True)
             # tf.summary.histogram('BigBee', self.bias)  # for debugging
         # End: routing algorithm V2, static ------------------------------------------------------------#
 
-        return K.reshape(outputs, [-1, self.num_capsule, self.dim_vector])
+        return tf.reshape(outputs, [-1, self.num_capsule, self.dim_vector])
 
     def compute_output_shape(self, input_shape):
         return tuple([None, self.num_capsule, self.dim_vector])
@@ -177,10 +178,10 @@ def PrimaryCap(inputs, dim_vector, n_channels, kernel_size, strides, padding):
     :param n_channels: the number of types of capsules
     :return: output tensor, shape=[None, num_capsule, dim_vector]
     """
-    output = layers.Conv2D(filters=dim_vector*n_channels, kernel_size=kernel_size, strides=strides, padding=padding,
-                           name='primarycap_conv2d')(inputs)
-    outputs = layers.Reshape(target_shape=[-1, dim_vector], name='primarycap_reshape')(output)
-    return layers.Lambda(squash, name='primarycap_squash')(outputs)
+    output = keras.layers.Conv2D(filters=dim_vector*n_channels, kernel_size=kernel_size, strides=strides,
+                                 padding=padding, name='primarycap_conv2d')(inputs)
+    outputs = keras.layers.Reshape(target_shape=[-1, dim_vector], name='primarycap_reshape')(output)
+    return keras.layers.Lambda(squash, name='primarycap_squash')(outputs)
 
 
 """
