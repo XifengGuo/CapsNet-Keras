@@ -1,7 +1,5 @@
 """
-Keras implementation of CapsNet in Hinton's paper Dynamic Routing Between Capsules.
-The current version maybe only works for TensorFlow backend. Actually it will be straightforward to re-write to TF code.
-Adopting to other backends should be easy, but I have not tested this. 
+TensorFlow 1.4 implementation of CapsNet in Hinton's paper Dynamic Routing Between Capsules.
 
 Usage:
        python CapsNet.py
@@ -10,8 +8,8 @@ Usage:
        ... ...
        
 Result:
-    Validation accuracy > 99.5% after 20 epochs. Still under-fitting.
-    About 110 seconds per epoch on a single GTX1070 GPU card
+    Validation accuracy > 99.6% after 30 epochs. Still under-fitting.
+    About 120 seconds per epoch on a single GTX1070 GPU card
     
 Author: Xifeng Guo, E-mail: `guoxifeng1990@163.com`, Github: `https://github.com/XifengGuo/CapsNet-Keras`
 """
@@ -27,7 +25,7 @@ def CapsNet(input_shape, n_class, num_routing):
     :param input_shape: data shape, 3d, [width, height, channels]
     :param n_class: number of classes
     :param num_routing: number of routing iterations
-    :return: A Keras Model with 2 inputs and 2 outputs
+    :return: A tensorflow.keras Model with 2 inputs and 2 outputs
     """
     x = keras.layers.Input(shape=input_shape)
 
@@ -52,7 +50,7 @@ def CapsNet(input_shape, n_class, num_routing):
     x_recon = keras.layers.Dense(np.prod(input_shape), activation='sigmoid')(x_recon)
     x_recon = keras.layers.Reshape(target_shape=input_shape, name='out_recon')(x_recon)
 
-    # two-input-two-output keras Model
+    # two-input-two-output tensorflow.keras Model
     return keras.models.Model([x, y], [out_caps, x_recon])
 
 
@@ -93,12 +91,6 @@ def train(model, data, args):
                   loss=[margin_loss, 'mse'],
                   loss_weights=[1., args.lam_recon],
                   metrics={'out_caps': 'accuracy'})
-
-    """
-    # Training without data augmentation:
-    model.fit([x_train, y_train], [y_train, x_train], batch_size=args.batch_size, epochs=args.epochs,
-              validation_data=[[x_test, y_test], [y_test, x_test]], callbacks=[log, tb, checkpoint, lr_decay])
-    """
 
     # Begin: Training with data augmentation ---------------------------------------------------------------------#
     def train_generator(x, y, batch_size, shift_fraction=0.):
@@ -184,7 +176,7 @@ if __name__ == "__main__":
     (x_train, y_train), (x_test, y_test) = load_mnist()
 
     # define model
-    model = CapsNet(input_shape=[28, 28, 1],
+    model = CapsNet(input_shape=x_train[1:],
                     n_class=len(np.unique(np.argmax(y_train, 1))),
                     num_routing=args.num_routing)
     model.summary()
@@ -194,7 +186,7 @@ if __name__ == "__main__":
         model.load_weights(args.weights)
     if args.is_training:
         train(model=model, data=((x_train, y_train), (x_test, y_test)), args=args)
-    else:  # as long as weights are given, will run testing
+    else:  # testing
         if args.weights is None:
             print('No weights are provided. Will test using random initialized weights.')
         test(model=model, data=(x_test, y_test))
