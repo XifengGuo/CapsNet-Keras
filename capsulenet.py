@@ -188,7 +188,7 @@ if __name__ == "__main__":
     (x_train, y_train), (x_test, y_test) = load_mnist()
 
     # define model
-    model = CapsNet(input_shape=[28, 28, 1],
+    model = CapsNet(input_shape=x_train.shape[1:],
                     n_class=len(np.unique(np.argmax(y_train, 1))),
                     num_routing=args.num_routing)
     model.summary()
