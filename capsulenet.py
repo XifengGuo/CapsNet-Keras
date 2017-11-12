@@ -87,6 +87,7 @@ def train(model, data, args):
                                batch_size=args.batch_size, histogram_freq=args.debug)
     checkpoint = callbacks.ModelCheckpoint(args.save_dir + '/weights-{epoch:02d}.h5',
                                            save_best_only=True, save_weights_only=True, verbose=1)
+    early_stop = callbacks.EarlyStopping(monitor='val_out_caps_acc', patience=10)
     lr_decay = callbacks.LearningRateScheduler(schedule=lambda epoch: args.lr * (0.9 ** epoch))
 
     # compile the model
@@ -115,7 +116,7 @@ def train(model, data, args):
                         steps_per_epoch=int(y_train.shape[0] / args.batch_size),
                         epochs=args.epochs,
                         validation_data=[[x_test, y_test], [y_test, x_test]],
-                        callbacks=[log, tb, checkpoint, lr_decay])
+                        callbacks=[log, tb, checkpoint, early_stop, lr_decay])
     # End: Training with data augmentation -----------------------------------------------------------------------#
 
     model.save_weights(args.save_dir + '/trained_model.h5')
@@ -169,8 +170,8 @@ if __name__ == "__main__":
     # setting the hyper parameters
     import argparse
     parser = argparse.ArgumentParser()
-    parser.add_argument('--batch_size', default=100, type=int)
-    parser.add_argument('--epochs', default=30, type=int)
+    parser.add_argument('--batch_size', default=128, type=int)
+    parser.add_argument('--epochs', default=100, type=int)
     parser.add_argument('--lam_recon', default=0.392, type=float)  # 784 * 0.0005, paper uses sum of SE, here uses MSE
     parser.add_argument('--num_routing', default=3, type=int)  # num_routing should > 0
     parser.add_argument('--shift_fraction', default=0.1, type=float)
