@@ -35,21 +35,20 @@ class Mask(layers.Layer):
         if type(inputs) is list:  # true label is provided with shape = [batch_size, n_classes], i.e. one-hot code.
             assert len(inputs) == 2
             inputs, mask = inputs
-        else:  # if no true label, mask by the max length of vectors of capsules
-            x = inputs
+            mask = K.expand_dims(mask, -1)
+        else:  # if no true label, mask by the max length of vectors of capsules. Used for prediction
+            x = K.sqrt(K.sum(K.square(inputs), -1, True))
             # Enlarge the range of values in x to make max(new_x)=1 and others < 0
             x = (x - K.max(x, 1, True)) / K.epsilon() + 1
             mask = K.clip(x, 0, 1)  # the max value in x clipped to 1 and other to 0
 
-        # masked inputs, shape = [batch_size, dim_vector]
-        inputs_masked = K.batch_dot(inputs, mask, [1, 1])
-        return inputs_masked
+        return K.batch_flatten(inputs * mask)  # masked inputs, shape = [None, num_capsule * dim_vector]
 
     def compute_output_shape(self, input_shape):
         if type(input_shape[0]) is tuple:  # true label provided
-            return tuple([None, input_shape[0][-1]])
+            return tuple([None, input_shape[0][1] * input_shape[0][2]])
         else:
-            return tuple([None, input_shape[-1]])
+            return tuple([None, input_shape[1] * input_shape[2]])
 
 
 def squash(vectors, axis=-1):

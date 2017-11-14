@@ -21,6 +21,8 @@ from keras import backend as K
 from keras.utils import to_categorical
 from capsulelayers import CapsuleLayer, PrimaryCap, Length, Mask
 
+K.set_image_data_format('channels_last')
+
 
 def CapsNet(input_shape, n_class, num_routing):
     """
@@ -43,18 +45,24 @@ def CapsNet(input_shape, n_class, num_routing):
 
     # Layer 4: This is an auxiliary layer to replace each capsule with its length. Just to match the true label's shape.
     # If using tensorflow, this will not be necessary. :)
-    out_caps = Length(name='out_caps')(digitcaps)
+    out_caps = Length(name='capsnet')(digitcaps)
 
     # Decoder network.
     y = layers.Input(shape=(n_class,))
-    masked = Mask()([digitcaps, y])  # The true label is used to mask the output of capsule layer.
-    x_recon = layers.Dense(512, activation='relu')(masked)
-    x_recon = layers.Dense(1024, activation='relu')(x_recon)
-    x_recon = layers.Dense(np.prod(input_shape), activation='sigmoid')(x_recon)
-    x_recon = layers.Reshape(target_shape=input_shape, name='out_recon')(x_recon)
+    masked_by_y = Mask()([digitcaps, y])  # The true label is used to mask the output of capsule layer. For training
+    masked = Mask()(digitcaps)  # Mask using the capsule with maximal length. For prediction
 
-    # two-input-two-output keras Model
-    return models.Model([x, y], [out_caps, x_recon])
+    # Shared Decoder model in training and prediction
+    decoder = models.Sequential(name='decoder')
+    decoder.add(layers.Dense(512, activation='relu', input_dim=16*n_class))
+    decoder.add(layers.Dense(1024, activation='relu'))
+    decoder.add(layers.Dense(np.prod(input_shape), activation='sigmoid'))
+    decoder.add(layers.Reshape(target_shape=input_shape, name='out_recon'))
+
+    # Models for training and evaluation (prediction)
+    train_model = models.Model([x, y], [out_caps, decoder(masked_by_y)])
+    eval_model = models.Model(x, [out_caps, decoder(masked)])
+    return train_model, eval_model
 
 
 def margin_loss(y_true, y_pred):
@@ -85,16 +93,15 @@ def train(model, data, args):
     log = callbacks.CSVLogger(args.save_dir + '/log.csv')
     tb = callbacks.TensorBoard(log_dir=args.save_dir + '/tensorboard-logs',
                                batch_size=args.batch_size, histogram_freq=args.debug)
-    checkpoint = callbacks.ModelCheckpoint(args.save_dir + '/weights-{epoch:02d}.h5',
+    checkpoint = callbacks.ModelCheckpoint(args.save_dir + '/weights-{epoch:02d}.h5', monitor='val_capsnet_acc',
                                            save_best_only=True, save_weights_only=True, verbose=1)
-    early_stop = callbacks.EarlyStopping(monitor='val_out_caps_acc', patience=10)
     lr_decay = callbacks.LearningRateScheduler(schedule=lambda epoch: args.lr * (0.9 ** epoch))
 
     # compile the model
     model.compile(optimizer=optimizers.Adam(lr=args.lr),
                   loss=[margin_loss, 'mse'],
                   loss_weights=[1., args.lam_recon],
-                  metrics={'out_caps': 'accuracy'})
+                  metrics={'capsnet': 'accuracy'})
 
     """
     # Training without data augmentation:
@@ -116,21 +123,21 @@ def train(model, data, args):
                         steps_per_epoch=int(y_train.shape[0] / args.batch_size),
                         epochs=args.epochs,
                         validation_data=[[x_test, y_test], [y_test, x_test]],
-                        callbacks=[log, tb, checkpoint, early_stop, lr_decay])
+                        callbacks=[log, tb, checkpoint, lr_decay])
     # End: Training with data augmentation -----------------------------------------------------------------------#
 
     model.save_weights(args.save_dir + '/trained_model.h5')
     print('Trained model saved to \'%s/trained_model.h5\'' % args.save_dir)
 
     from utils import plot_log
-    plot_log(args.save_dir + '/log.csv', show=True)
+    plot_log(args.save_dir + '/log.csv', show=False)
 
     return model
 
 
 def test(model, data):
     x_test, y_test = data
-    y_pred, x_recon = model.predict([x_test, y_test], batch_size=100)
+    y_pred, x_recon = model.predict(x_test, batch_size=100)
     print('-'*50)
     print('Test acc:', np.sum(np.argmax(y_pred, 1) == np.argmax(y_test, 1))/y_test.shape[0])
 
@@ -170,8 +177,8 @@ if __name__ == "__main__":
     # setting the hyper parameters
     import argparse
     parser = argparse.ArgumentParser()
-    parser.add_argument('--batch_size', default=128, type=int)
-    parser.add_argument('--epochs', default=100, type=int)
+    parser.add_argument('--batch_size', default=100, type=int)
+    parser.add_argument('--epochs', default=50, type=int)
     parser.add_argument('--lam_recon', default=0.392, type=float)  # 784 * 0.0005, paper uses sum of SE, here uses MSE
     parser.add_argument('--num_routing', default=3, type=int)  # num_routing should > 0
     parser.add_argument('--shift_fraction', default=0.1, type=float)
@@ -189,9 +196,9 @@ if __name__ == "__main__":
     (x_train, y_train), (x_test, y_test) = load_mnist()
 
     # define model
-    model = CapsNet(input_shape=x_train.shape[1:],
-                    n_class=len(np.unique(np.argmax(y_train, 1))),
-                    num_routing=args.num_routing)
+    model, eval_model = CapsNet(input_shape=x_train.shape[1:],
+                                n_class=len(np.unique(np.argmax(y_train, 1))),
+                                num_routing=args.num_routing)
     model.summary()
     plot_model(model, to_file=args.save_dir+'/model.png', show_shapes=True)
 
@@ -203,4 +210,4 @@ if __name__ == "__main__":
     else:  # as long as weights are given, will run testing
         if args.weights is None:
             print('No weights are provided. Will test using random initialized weights.')
-        test(model=model, data=(x_test, y_test))
+        test(model=eval_model, data=(x_test, y_test))
