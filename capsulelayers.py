@@ -96,10 +96,10 @@ class CapsuleLayer(layers.Layer):
                                  name='W')
 
         # Coupling coefficient. The redundant dimensions are just to facilitate subsequent matrix calculation.
-        self.bias = self.add_weight(shape=[1, self.input_num_capsule, self.num_capsule, 1, 1],
-                                    initializer=self.bias_initializer,
-                                    name='bias',
-                                    trainable=False)
+        self.initial_bias = self.add_weight(shape=[1, self.input_num_capsule, self.num_capsule, 1, 1],
+                                            initializer=self.bias_initializer,
+                                            name='bias',
+                                            trainable=False)
         self.built = True
 
     def call(self, inputs, training=None):
@@ -139,7 +139,8 @@ class CapsuleLayer(layers.Layer):
             return [i-1, b, outputs]
 
         cond = lambda i, b, inputs_hat: i > 0
-        loop_vars = [K.constant(self.num_routing), self.bias, K.sum(inputs_hat, 1, keepdims=True)]
+        bias = self.initial_bias
+        loop_vars = [K.constant(self.num_routing), bias, K.sum(inputs_hat, 1, keepdims=True)]
         shape_invariants = [tf.TensorShape([]),
                             tf.TensorShape([None, self.input_num_capsule, self.num_capsule, 1, 1]),
                             tf.TensorShape([None, 1, self.num_capsule, 1, self.dim_vector])]
@@ -150,16 +151,17 @@ class CapsuleLayer(layers.Layer):
         # Begin: routing algorithm V2, static -----------------------------------------------------------#
         # Routing algorithm V2. Use iteration. V2 and V1 both work without much difference on performance
         assert self.num_routing > 0, 'The num_routing should be > 0.'
+        bias = self.initial_bias
         for i in range(self.num_routing):
-            c = tf.nn.softmax(self.bias, dim=2)  # dim=2 is the num_capsule dimension
+            c = tf.nn.softmax(bias, dim=2)  # dim=2 is the num_capsule dimension
             # outputs.shape=[None, 1, num_capsule, 1, dim_vector]
             outputs = squash(K.sum(c * inputs_hat, 1, keepdims=True))
 
             # last iteration needs not compute bias which will not be passed to the graph any more anyway.
             if i != self.num_routing - 1:
-                # self.bias = K.update_add(self.bias, K.sum(inputs_hat * outputs, [0, -1], keepdims=True))
-                self.bias += K.sum(inputs_hat * outputs, -1, keepdims=True)
-            # tf.summary.histogram('BigBee', self.bias)  # for debugging
+                # bias = K.update_add(bias, K.sum(inputs_hat * outputs, [0, -1], keepdims=True))
+                bias += K.sum(inputs_hat * outputs, -1, keepdims=True)
+            # tf.summary.histogram('BigBee', bias)  # for debugging
         # End: routing algorithm V2, static ------------------------------------------------------------#
 
         return K.reshape(outputs, [-1, self.num_capsule, self.dim_vector])
