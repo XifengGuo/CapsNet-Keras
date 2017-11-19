@@ -5,12 +5,12 @@ Adopting to other backends should be easy, but I have not tested this.
 
 Usage:
        python CapsNet.py
-       python CapsNet.py --epochs 100
-       python CapsNet.py --epochs 100 --num_routing 3
+       python CapsNet.py --epochs 50
+       python CapsNet.py --epochs 50 --num_routing 3
        ... ...
        
 Result:
-    Validation accuracy > 99.5% after 20 epochs. Still under-fitting.
+    Validation accuracy > 99.5% after 20 epochs. Converge to 99.66% after 50 epochs.
     About 110 seconds per epoch on a single GTX1070 GPU card
     
 Author: Xifeng Guo, E-mail: `guoxifeng1990@163.com`, Github: `https://github.com/XifengGuo/CapsNet-Keras`
@@ -24,24 +24,26 @@ from capsulelayers import CapsuleLayer, PrimaryCap, Length, Mask
 K.set_image_data_format('channels_last')
 
 
-def CapsNet(input_shape, n_class, num_routing):
+def CapsNet(input_shape, n_class, num_routing, batch_size):
     """
     A Capsule Network on MNIST.
     :param input_shape: data shape, 3d, [width, height, channels]
     :param n_class: number of classes
     :param num_routing: number of routing iterations
-    :return: A Keras Model with 2 inputs and 2 outputs
+    :return: Two Keras Models, the first one used for training, and the second one for evaluation.
+            `eval_model` can also be used for training.
     """
     x = layers.Input(shape=input_shape)
 
     # Layer 1: Just a conventional Conv2D layer
     conv1 = layers.Conv2D(filters=256, kernel_size=9, strides=1, padding='valid', activation='relu', name='conv1')(x)
 
-    # Layer 2: Conv2D layer with `squash` activation, then reshape to [None, num_capsule, dim_vector]
-    primarycaps = PrimaryCap(conv1, dim_vector=8, n_channels=32, kernel_size=9, strides=2, padding='valid')
+    # Layer 2: Conv2D layer with `squash` activation, then reshape to [None, num_capsule, dim_capsule]
+    primarycaps = PrimaryCap(conv1, dim_capsule=8, n_channels=32, kernel_size=9, strides=2, padding='valid')
 
     # Layer 3: Capsule layer. Routing algorithm works here.
-    digitcaps = CapsuleLayer(num_capsule=n_class, dim_vector=16, num_routing=num_routing, name='digitcaps')(primarycaps)
+    digitcaps = CapsuleLayer(num_capsule=n_class, dim_capsule=16, batch_size=batch_size, num_routing=num_routing,
+                             name='digitcaps')(primarycaps)
 
     # Layer 4: This is an auxiliary layer to replace each capsule with its length. Just to match the true label's shape.
     # If using tensorflow, this will not be necessary. :)
@@ -130,7 +132,7 @@ def train(model, data, args):
     print('Trained model saved to \'%s/trained_model.h5\'' % args.save_dir)
 
     from utils import plot_log
-    plot_log(args.save_dir + '/log.csv', show=False)
+    plot_log(args.save_dir + '/log.csv', show=True)
 
     return model
 
@@ -198,7 +200,8 @@ if __name__ == "__main__":
     # define model
     model, eval_model = CapsNet(input_shape=x_train.shape[1:],
                                 n_class=len(np.unique(np.argmax(y_train, 1))),
-                                num_routing=args.num_routing)
+                                num_routing=args.num_routing,
+                                batch_size=args.batch_size)
     model.summary()
     plot_model(model, to_file=args.save_dir+'/model.png', show_shapes=True)
 

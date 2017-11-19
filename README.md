@@ -16,18 +16,18 @@ the coefficient for the loss is `lam_recon=0.0005*784=0.392`.
 This should be **equivalent** with using SSE (sum squared error) and `lam_recon=0.0005` as in the paper.
 
 **Recent updates:**
-- Correct the `Mask` operation. Now all digit capsules are connected to the decoder simultaneously.
-- Change default `epochs` from 30 to 50.   
-- Define a separate model for test phase which does not require ground truth `y` as input.   
-- Fix [#13](https://github.com/XifengGuo/CapsNet-Keras/issues/13)   
-- Report test errors on MNIST
+- Correct the *Routing algorithm*. Now the gradients in inner iterations are blocked. 
+   Reorganize the dimensions of Tensors in this part and optimize some operations to speed up.
+   About `100s / epoch` on a single GTX 1070 GPU.  
+- Rename `dim_vector` to `dim_capsule`.   
+- Change prior `b` from Variable to constant and move it from `build` to `call`.
+   Although it is **equivalent** to the former version, but the current version is easier
+   to understand. Thanks to [#15](https://github.com/XifengGuo/CapsNet-Keras/pull/15).   
+
 
 **TODO**
-- ~~The model has 8M parameters, while the paper said it should be 11M.~~   
-I have figured out the reason: 11M parameters are for the CapsuleNet on MultiMNIST where the
-image size is 36x36. The CapsuleNet on MNIST should indeed have 8M parameters. 
-- I'll stop pursuing higher accuracy on MNIST. 
-It is time to explore the interacting characteristics of CapsuleNet.
+- Conduct experiments on other datasets. 
+- Explore interesting characteristics of CapsuleNet.
 
 **Contacts**
 - Your contributions to the repo are always welcome. 
@@ -37,8 +37,8 @@ Open an issue or contact me with E-mail `guoxifeng1990@163.com` or WeChat `wenlo
 ## Usage
 
 **Step 1.
-Install [Keras](https://github.com/fchollet/keras) 
-with [TensorFlow](https://github.com/tensorflow/tensorflow) backend.**
+Install [Keras>=2.0](https://github.com/fchollet/keras) 
+with [TensorFlow>=1.2](https://github.com/tensorflow/tensorflow) backend.**
 ```
 pip install tensorflow-gpu
 pip install keras
@@ -76,7 +76,7 @@ The testing data is same as the validation data. It will be easy to test on new 
 just change the code as you want.
 
 You can also just *download a model I trained* from 
-https://pan.baidu.com/s/1nv9SMFn
+https://pan.baidu.com/s/1sldqQo1
 
 ## Results
 
@@ -104,7 +104,7 @@ Losses and accuracies:
 
 **Training Speed**  
 
-About `110s / epoch` on a single GTX 1070 GPU.   
+About `100s / epoch` on a single GTX 1070 GPU.   
 
 
 **Reconstruction result**  
@@ -123,28 +123,23 @@ digits at bottom are corresponding reconstructed images.
 ![](result/model.png)
 
 ## Other Implementations
-- Kaggle (this version as self-contained notebook):
-  - [MNIST Dataset](https://www.kaggle.com/kmader/capsulenet-on-mnist) running on the standard MNIST and predicting for test data
-  - [MNIST Fashion](https://www.kaggle.com/kmader/capsulenet-on-fashion-mnist) running on the more challenging Fashion images.
 - TensorFlow:
   - [naturomics/CapsNet-Tensorflow](https://github.com/naturomics/CapsNet-Tensorflow.git)   
   Very good implementation. I referred to this repository in my code.
   - [InnerPeace-Wu/CapsNet-tensorflow](https://github.com/InnerPeace-Wu/CapsNet-tensorflow)   
   I referred to the use of tf.scan when optimizing my CapsuleLayer.
-  - [LaoDar/tf_CapsNet_simple](https://github.com/LaoDar/tf_CapsNet_simple)
 
 - PyTorch:
-  - [nishnik/CapsNet-PyTorch](https://github.com/nishnik/CapsNet-PyTorch.git)
   - [timomernick/pytorch-capsule](https://github.com/timomernick/pytorch-capsule)
   - [gram-ai/capsule-networks](https://github.com/gram-ai/capsule-networks)
-  - [andreaazzini/capsnet.pytorch](https://github.com/andreaazzini/capsnet.pytorch.git)
+  - [nishnik/CapsNet-PyTorch](https://github.com/nishnik/CapsNet-PyTorch.git)
   - [leftthomas/CapsNet](https://github.com/leftthomas/CapsNet)
   
 - MXNet:
   - [AaronLeong/CapsNet_Mxnet](https://github.com/AaronLeong/CapsNet_Mxnet)
   
-- Lasagne (Theano):
-  - [DeniskaMazur/CapsNet-Lasagne](https://github.com/DeniskaMazur/CapsNet-Lasagne)
-
 - Chainer:
   - [soskek/dynamic_routing_between_capsules](https://github.com/soskek/dynamic_routing_between_capsules)
+
+- Matlab:
+  - [yechengxi/LightCapsNet](https://github.com/yechengxi/LightCapsNet)
