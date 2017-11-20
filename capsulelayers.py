@@ -126,9 +126,7 @@ class CapsuleLayer(layers.Layer):
         # Regard the first two dimensions as `batch` dimension,
         # then matmul: [input_dim_capsule] x [dim_capsule, input_dim_capsule]^T -> [dim_capsule].
         # inputs_hat.shape = [None, num_capsule, input_num_capsule, dim_capsule]
-        inputs_hat = tf.scan(lambda ac, x: K.batch_dot(x, self.W, [2, 3]),
-                             elems=inputs_tiled,
-                             initializer=K.zeros([self.num_capsule, self.input_num_capsule, self.dim_capsule]))
+        inputs_hat = K.map_fn(lambda x: K.batch_dot(x, self.W, [2, 3]), elems=inputs_tiled)
 
         """
         # Begin: routing algorithm V1, dynamic ------------------------------------------------------------#
