@@ -16,6 +16,8 @@ the coefficient for the loss is `lam_recon=0.0005*784=0.392`.
 This should be **equivalent** with using SSE (sum squared error) and `lam_recon=0.0005` as in the paper.
 
 **Recent updates:**
+- Add example for multi-gpu training. On two GTX 1080Ti, speed=`55s/epoch`, in contrast to 
+   `80s/epoch` on a single GTX 1080Ti.     
 - Correct the *Routing algorithm*. Now the gradients in inner iterations are blocked. 
    Reorganize the dimensions of Tensors in this part and optimize some operations to speed up.
    About `100s / epoch` on a single GTX 1070 GPU.  
@@ -54,11 +56,11 @@ cd CapsNet-Keras
 
 Training with default settings:
 ```
-$ python capsulenet.py
+python capsulenet.py
 ```
 Training with one routing iteration (default 3).   
 ```
-$ python capsulenet.py --num_routing 1
+python capsulenet.py --num_routing 1
 ```
 
 Other parameters include `batch_size, epochs, lam_recon, shift_fraction, save_dir` can be
@@ -77,6 +79,16 @@ just change the code as you want.
 
 You can also just *download a model I trained* from 
 https://pan.baidu.com/s/1sldqQo1
+
+
+**Step 5. Train on multi gpus**   
+
+This requires `Keras>=2.0.9`. After updating Keras:   
+```
+python capsulenet-multi-gpu.py --gpus 2
+```
+It will automatically train on multi gpus for 50 epochs and then output the performance on test dataset.
+But during training, no validation accuracy is reported.
 
 ## Results
 
@@ -105,7 +117,8 @@ Losses and accuracies:
 **Training Speed**  
 
 About `100s / epoch` on a single GTX 1070 GPU.   
-
+About `80s / epoch` on a single GTX 1080Ti GPU.   
+About `55s / epoch` on two GTX 1080Ti GPU by using `capsulenet-multi-gpu.py`.      
 
 **Reconstruction result**  
 
@@ -125,9 +138,9 @@ digits at bottom are corresponding reconstructed images.
 ## Other Implementations
 - TensorFlow:
   - [naturomics/CapsNet-Tensorflow](https://github.com/naturomics/CapsNet-Tensorflow.git)   
-  Very good implementation. I referred to this repository in my code.
+  I referred to some functions in this repository.
   - [InnerPeace-Wu/CapsNet-tensorflow](https://github.com/InnerPeace-Wu/CapsNet-tensorflow)   
-  I referred to the use of tf.scan when optimizing my CapsuleLayer.
+  - [chrislybaer/capsules-tensorflow](https://github.com/chrislybaer/capsules-tensorflow)
 
 - PyTorch:
   - [timomernick/pytorch-capsule](https://github.com/timomernick/pytorch-capsule)

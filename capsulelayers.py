@@ -83,17 +83,15 @@ class CapsuleLayer(layers.Layer):
     
     :param num_capsule: number of capsules in this layer
     :param dim_capsule: dimension of the output vectors of the capsules in this layer
-    :param batch_size: used for defining prior `b` of coupling coefficient `c`
     :param num_routing: number of iterations for the routing algorithm
     """
-    def __init__(self, num_capsule, dim_capsule, batch_size, num_routing=3,
+    def __init__(self, num_capsule, dim_capsule, num_routing=3,
                  kernel_initializer='glorot_uniform',
                  bias_initializer='zeros',
                  **kwargs):
         super(CapsuleLayer, self).__init__(**kwargs)
         self.num_capsule = num_capsule
         self.dim_capsule = dim_capsule
-        self.batch_size = batch_size
         self.num_routing = num_routing
         self.kernel_initializer = initializers.get(kernel_initializer)
         self.bias_initializer = initializers.get(bias_initializer)
@@ -156,7 +154,9 @@ class CapsuleLayer(layers.Layer):
         inputs_hat_stopped = K.stop_gradient(inputs_hat)
         
         # The prior for coupling coefficient, initialized as zeros.
-        b = K.zeros(shape=[self.batch_size, self.num_capsule, self.input_num_capsule])
+        # b.shape = [None, self.num_capsule, self.input_num_capsule]. It's equivalent to
+        # `b=K.zeros(shape=[batch_size, num_capsule, input_num_capsule])`. I just can't get `batch_size`
+        b = K.stop_gradient(K.sum(K.zeros_like(inputs_hat), -1))
 
         assert self.num_routing > 0, 'The num_routing should be > 0.'
         for i in range(self.num_routing):
