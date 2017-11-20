@@ -87,14 +87,12 @@ class CapsuleLayer(layers.Layer):
     """
     def __init__(self, num_capsule, dim_capsule, num_routing=3,
                  kernel_initializer='glorot_uniform',
-                 bias_initializer='zeros',
                  **kwargs):
         super(CapsuleLayer, self).__init__(**kwargs)
         self.num_capsule = num_capsule
         self.dim_capsule = dim_capsule
         self.num_routing = num_routing
         self.kernel_initializer = initializers.get(kernel_initializer)
-        self.bias_initializer = initializers.get(bias_initializer)
 
     def build(self, input_shape):
         assert len(input_shape) >= 3, "The input Tensor should have shape=[None, input_num_capsule, input_dim_capsule]"
