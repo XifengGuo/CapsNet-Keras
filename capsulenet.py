@@ -19,7 +19,7 @@ import tensorflow as tf
 from tensorflow import keras
 from capsulelayers import CapsuleLayer, PrimaryCap, Length, Mask
 
-K.set_image_data_format('channels_last')
+keras.backend.set_image_data_format('channels_last')
 
 
 def CapsNet(input_shape, n_class, num_routing):
