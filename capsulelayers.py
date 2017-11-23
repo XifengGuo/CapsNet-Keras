@@ -149,9 +149,8 @@ class CapsuleLayer(keras.layers.Layer):
         inputs_hat_stopped = tf.stop_gradient(inputs_hat)
 
         # The prior for coupling coefficient, initialized as zeros.
-        # b.shape = [None, self.num_capsule, self.input_num_capsule]. It's equivalent to
-        # `b=K.zeros(shape=[batch_size, num_capsule, input_num_capsule])`. I just can't get `batch_size`
-        b = tf.stop_gradient(tf.reduce_sum(tf.zeros_like(inputs_hat), -1))
+        # b.shape = [None, self.num_capsule, self.input_num_capsule].
+        b = tf.zeros(shape=[tf.shape(inputs_hat)[0], self.num_capsule, self.input_num_capsule])
 
         assert self.num_routing > 0, 'The num_routing should be > 0.'
         for i in range(self.num_routing):
