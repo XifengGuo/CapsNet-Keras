@@ -174,7 +174,6 @@ if __name__ == "__main__":
     import os
     from keras.preprocessing.image import ImageDataGenerator
     from keras import callbacks
-    from keras.utils.vis_utils import plot_model
 
     # setting the hyper parameters
     import argparse
@@ -202,7 +201,6 @@ if __name__ == "__main__":
                                 n_class=len(np.unique(np.argmax(y_train, 1))),
                                 num_routing=args.num_routing)
     model.summary()
-    plot_model(model, to_file=args.save_dir+'/model.png', show_shapes=True)
 
     # train or test
     if args.weights is not None:  # init the model weights with provided one
