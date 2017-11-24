@@ -41,19 +41,21 @@ class Mask(layers.Layer):
         ```
     """
     def call(self, inputs, **kwargs):
-        if type(inputs) is list:  # true label is provided with shape = [batch_size, n_classes], i.e. one-hot code.
+        if type(inputs) is list:  # true label is provided with shape = [None, n_classes], i.e. one-hot code.
             assert len(inputs) == 2
             inputs, mask = inputs
-            mask = K.expand_dims(mask, -1)
         else:  # if no true label, mask by the max length of capsules. Mainly used for prediction
             # compute lengths of capsules
-            x = K.sqrt(K.sum(K.square(inputs), -1, True))
-            # Enlarge the range of values in x to make max(new_x[i,:])=1 and others << 0
-            x = (x - K.max(x, 1, True)) / K.epsilon() + 1
-            # the max value in x clipped to 1 and other to 0. Now `mask` is one-hot coding.
-            mask = K.clip(x, 0, 1)
+            x = K.sqrt(K.sum(K.square(inputs), -1))
+            # generate the mask which is a one-hot code.
+            # mask.shape=[None, n_classes]=[None, num_capsule]
+            mask = K.one_hot(indices=K.argmax(x, 1), num_classes=x.get_shape().as_list()[1])
 
-        return K.batch_flatten(inputs * mask)  # masked inputs, shape = [None, num_capsule * dim_capsule]
+        # inputs.shape=[None, num_capsule, dim_capsule]
+        # mask.shape=[None, num_capsule]
+        # masked.shape=[None, num_capsule * dim_capsule]
+        masked = K.batch_flatten(inputs * K.expand_dims(mask, -1))
+        return masked
 
     def compute_output_shape(self, input_shape):
         if type(input_shape[0]) is tuple:  # true label provided
