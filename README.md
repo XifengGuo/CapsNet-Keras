@@ -15,17 +15,6 @@ Sounds crazy, maybe I misunderstood.
 the coefficient for the loss is `lam_recon=0.0005*784=0.392`.   
 This should be **equivalent** with using SSE (sum squared error) and `lam_recon=0.0005` as in the paper.
 
-**Recent updates:**
-- Add example for multi-gpu training. On two GTX 1080Ti, speed=`55s/epoch`, in contrast to 
-   `80s/epoch` on a single GTX 1080Ti.     
-- Correct the *Routing algorithm*. Now the gradients in inner iterations are blocked. 
-   Reorganize the dimensions of Tensors in this part and optimize some operations to speed up.
-   About `100s / epoch` on a single GTX 1070 GPU.  
-- Rename `dim_vector` to `dim_capsule`.   
-- Change prior `b` from Variable to constant and move it from `build` to `call`.
-   Although it is **equivalent** to the former version, but the current version is easier
-   to understand. Thanks to [#15](https://github.com/XifengGuo/CapsNet-Keras/pull/15).   
-
 
 **TODO**
 - Conduct experiments on other datasets. 
@@ -136,18 +125,20 @@ digits at bottom are corresponding reconstructed images.
 ![](result/model.png)
 
 ## Other Implementations
+
+- PyTorch:
+  - [XifengGuo/CapsNet-Pytorch](https://github.com/XifengGuo/CapsNet-Pytorch)
+  - [timomernick/pytorch-capsule](https://github.com/timomernick/pytorch-capsule)
+  - [gram-ai/capsule-networks](https://github.com/gram-ai/capsule-networks)
+  - [nishnik/CapsNet-PyTorch](https://github.com/nishnik/CapsNet-PyTorch.git)
+  - [leftthomas/CapsNet](https://github.com/leftthomas/CapsNet)
+  
 - TensorFlow:
   - [naturomics/CapsNet-Tensorflow](https://github.com/naturomics/CapsNet-Tensorflow.git)   
   I referred to some functions in this repository.
   - [InnerPeace-Wu/CapsNet-tensorflow](https://github.com/InnerPeace-Wu/CapsNet-tensorflow)   
   - [chrislybaer/capsules-tensorflow](https://github.com/chrislybaer/capsules-tensorflow)
 
-- PyTorch:
-  - [timomernick/pytorch-capsule](https://github.com/timomernick/pytorch-capsule)
-  - [gram-ai/capsule-networks](https://github.com/gram-ai/capsule-networks)
-  - [nishnik/CapsNet-PyTorch](https://github.com/nishnik/CapsNet-PyTorch.git)
-  - [leftthomas/CapsNet](https://github.com/leftthomas/CapsNet)
-  
 - MXNet:
   - [AaronLeong/CapsNet_Mxnet](https://github.com/AaronLeong/CapsNet_Mxnet)
   
