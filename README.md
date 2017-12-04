@@ -28,7 +28,7 @@ Open an issue or contact me with E-mail `guoxifeng1990@163.com` or WeChat `wenlo
 ## Usage
 
 **Step 1.
-Install [Keras>=2.0](https://github.com/fchollet/keras) 
+Install [Keras>=2.0.7](https://github.com/fchollet/keras) 
 with [TensorFlow>=1.2](https://github.com/tensorflow/tensorflow) backend.**
 ```
 pip install tensorflow-gpu
@@ -37,8 +37,8 @@ pip install keras
 
 **Step 2. Clone this repository to local.**
 ```
-git clone https://github.com/XifengGuo/CapsNet-Keras.git
-cd CapsNet-Keras
+git clone https://github.com/XifengGuo/CapsNet-Keras.git capsnet-keras
+cd capsnet-keras
 ```
 
 **Step 3. Train a CapsNet on MNIST**  
@@ -47,20 +47,18 @@ Training with default settings:
 ```
 python capsulenet.py
 ```
-Training with one routing iteration (default 3).   
-```
-python capsulenet.py --num_routing 1
-```
 
-Other parameters include `batch_size, epochs, lam_recon, shift_fraction, save_dir` can be
-passed to the function in the same way. Please refer to `capsulenet.py`
+More detailed usage run for help:
+```
+python capsulenet.py -h
+```
 
 **Step 4. Test a pre-trained CapsNet model**
 
 Suppose you have trained a model using the above command, then the trained model will be
 saved to `result/trained_model.h5`. Now just launch the following command to get test results.
 ```
-$ python capsulenet.py --is_training 0 --weights result/trained_model.h5
+$ python capsulenet.py -t -w result/trained_model.h5
 ```
 It will output the testing accuracy and show the reconstructed images.
 The testing data is same as the validation data. It will be easy to test on new data, 
@@ -86,10 +84,10 @@ But during training, no validation accuracy is reported.
 CapsNet classification test **error** on MNIST. Average and standard deviation results are
 reported by 3 trials. The results can be reproduced by launching the following commands.   
  ```
- python capsulenet.py --num_routing 1 --lam_recon 0.0    #CapsNet-v1   
- python capsulenet.py --num_routing 1 --lam_recon 0.392  #CapsNet-v2
- python capsulenet.py --num_routing 3 --lam_recon 0.0    #CapsNet-v3 
- python capsulenet.py --num_routing 3 --lam_recon 0.392  #CapsNet-v4
+ python capsulenet.py --routings 1 --lam_recon 0.0    #CapsNet-v1   
+ python capsulenet.py --routings 1 --lam_recon 0.392  #CapsNet-v2
+ python capsulenet.py --routings 3 --lam_recon 0.0    #CapsNet-v3 
+ python capsulenet.py --routings 3 --lam_recon 0.392  #CapsNet-v4
 ```
    Method     |   Routing   |   Reconstruction  |  MNIST (%)  |  *Paper*    
    :---------|:------:|:---:|:----:|:----:
