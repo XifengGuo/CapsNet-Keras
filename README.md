@@ -116,11 +116,33 @@ python capsulenet.py --is_training 0 --weights result/trained_model.h5
 Digits at top 5 rows are real images from MNIST and 
 digits at bottom are corresponding reconstructed images.
 
-![](real_and_recon.png)
+![](result/real_and_recon.png)
 
-**The model structure:**  
- 
-![](result/model.png)
+**Manipulate latent code:**
+
+```
+python capsulenet.py -t --digit 5 -w result/trained_model.h5 
+```
+For each digit, the *i*th row corresponds to the *i*th dimension of the capsule, and columns from left to 
+right correspond to adding `[-0.25, -0.2, -0.15, -0.1, -0.05, 0, 0.05, 0.1, 0.15, 0.2, 0.25]` to 
+the value of one dimension of the capsule. 
+
+As we can see, each dimension has caught some characteristics of a digit. The same dimension of 
+different digit capsules may represent different characteristics. This is because that different 
+digits are reconstructed from different feature vectors (digit capsules). These vectors are mutually 
+independent during reconstruction.
+    
+![](result/manipulate-0.png)
+![](result/manipulate-1.png)
+![](result/manipulate-2.png)
+![](result/manipulate-3.png)
+![](result/manipulate-4.png)
+![](result/manipulate-5.png)
+![](result/manipulate-6.png)
+![](result/manipulate-7.png)
+![](result/manipulate-8.png)
+![](result/manipulate-9.png)
+
 
 ## Other Implementations
 
