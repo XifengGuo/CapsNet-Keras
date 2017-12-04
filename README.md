@@ -79,7 +79,7 @@ But during training, no validation accuracy is reported.
 
 ## Results
 
-**Test Errors**   
+#### Test Errors   
 
 CapsNet classification test **error** on MNIST. Average and standard deviation results are
 reported by 3 trials. The results can be reproduced by launching the following commands.   
@@ -101,13 +101,13 @@ Losses and accuracies:
 ![](result/log.png)
 
 
-**Training Speed**  
+#### Training Speed 
 
 About `100s / epoch` on a single GTX 1070 GPU.   
 About `80s / epoch` on a single GTX 1080Ti GPU.   
 About `55s / epoch` on two GTX 1080Ti GPU by using `capsulenet-multi-gpu.py`.      
 
-**Reconstruction result**  
+#### Reconstruction result  
 
 The result of CapsNet-v4 by launching   
 ```
@@ -118,7 +118,7 @@ digits at bottom are corresponding reconstructed images.
 
 ![](result/real_and_recon.png)
 
-**Manipulate latent code:**
+#### Manipulate latent code
 
 ```
 python capsulenet.py -t --digit 5 -w result/trained_model.h5 
