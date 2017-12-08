@@ -111,7 +111,7 @@ About `55s / epoch` on two GTX 1080Ti GPU by using `capsulenet-multi-gpu.py`.
 
 The result of CapsNet-v4 by launching   
 ```
-python capsulenet.py --is_training 0 --weights result/trained_model.h5
+python capsulenet.py -t -w result/trained_model.h5
 ```
 Digits at top 5 rows are real images from MNIST and 
 digits at bottom are corresponding reconstructed images.
