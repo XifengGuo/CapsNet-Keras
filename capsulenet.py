@@ -6,7 +6,7 @@ Adopting to other backends should be easy, but I have not tested this.
 Usage:
        python CapsNet.py
        python CapsNet.py --epochs 50
-       python CapsNet.py --epochs 50 --num_routing 3
+       python CapsNet.py --epochs 50 --routings 3
        ... ...
        
 Result:
@@ -28,12 +28,12 @@ from capsulelayers import CapsuleLayer, PrimaryCap, Length, Mask
 K.set_image_data_format('channels_last')
 
 
-def CapsNet(input_shape, n_class, num_routing):
+def CapsNet(input_shape, n_class, routings):
     """
     A Capsule Network on MNIST.
     :param input_shape: data shape, 3d, [width, height, channels]
     :param n_class: number of classes
-    :param num_routing: number of routing iterations
+    :param routings: number of routing iterations
     :return: Two Keras Models, the first one used for training, and the second one for evaluation.
             `eval_model` can also be used for training.
     """
@@ -46,7 +46,7 @@ def CapsNet(input_shape, n_class, num_routing):
     primarycaps = PrimaryCap(conv1, dim_capsule=8, n_channels=32, kernel_size=9, strides=2, padding='valid')
 
     # Layer 3: Capsule layer. Routing algorithm works here.
-    digitcaps = CapsuleLayer(num_capsule=n_class, dim_capsule=16, num_routing=num_routing,
+    digitcaps = CapsuleLayer(num_capsule=n_class, dim_capsule=16, routings=routings,
                              name='digitcaps')(primarycaps)
 
     # Layer 4: This is an auxiliary layer to replace each capsule with its length. Just to match the true label's shape.
@@ -217,7 +217,7 @@ if __name__ == "__main__":
     parser.add_argument('--lam_recon', default=0.392, type=float,
                         help="The coefficient for the loss of decoder")
     parser.add_argument('-r', '--routings', default=3, type=int,
-                        help="Number of iterations used in routing algorithm. should > 0")  # num_routing should > 0
+                        help="Number of iterations used in routing algorithm. should > 0")
     parser.add_argument('--shift_fraction', default=0.1, type=float,
                         help="Fraction of pixels to shift at most in each direction.")
     parser.add_argument('--debug', action='store_true',
@@ -241,7 +241,7 @@ if __name__ == "__main__":
     # define model
     model, eval_model, manipulate_model = CapsNet(input_shape=x_train.shape[1:],
                                                   n_class=len(np.unique(np.argmax(y_train, 1))),
-                                                  num_routing=args.routings)
+                                                  routings=args.routings)
     model.summary()
 
 
