@@ -85,15 +85,15 @@ class CapsuleLayer(layers.Layer):
     
     :param num_capsule: number of capsules in this layer
     :param dim_capsule: dimension of the output vectors of the capsules in this layer
-    :param num_routing: number of iterations for the routing algorithm
+    :param routings: number of iterations for the routing algorithm
     """
-    def __init__(self, num_capsule, dim_capsule, num_routing=3,
+    def __init__(self, num_capsule, dim_capsule, routings=3,
                  kernel_initializer='glorot_uniform',
                  **kwargs):
         super(CapsuleLayer, self).__init__(**kwargs)
         self.num_capsule = num_capsule
         self.dim_capsule = dim_capsule
-        self.num_routing = num_routing
+        self.routings = routings
         self.kernel_initializer = initializers.get(kernel_initializer)
 
     def build(self, input_shape):
@@ -139,7 +139,7 @@ class CapsuleLayer(layers.Layer):
             return [i-1, b, outputs]
 
         cond = lambda i, b, inputs_hat: i > 0
-        loop_vars = [K.constant(self.num_routing), b, K.sum(inputs_hat, 2, keepdims=False)]
+        loop_vars = [K.constant(self.routings), b, K.sum(inputs_hat, 2, keepdims=False)]
         shape_invariants = [tf.TensorShape([]),
                             tf.TensorShape([None, self.num_capsule, self.input_num_capsule]),
                             tf.TensorShape([None, self.num_capsule, self.dim_capsule])]
@@ -155,13 +155,13 @@ class CapsuleLayer(layers.Layer):
         # b.shape = [None, self.num_capsule, self.input_num_capsule].
         b = tf.zeros(shape=[K.shape(inputs_hat)[0], self.num_capsule, self.input_num_capsule])
 
-        assert self.num_routing > 0, 'The num_routing should be > 0.'
-        for i in range(self.num_routing):
+        assert self.routings > 0, 'The routings should be > 0.'
+        for i in range(self.routings):
             # c.shape=[batch_size, num_capsule, input_num_capsule]
             c = tf.nn.softmax(b, dim=1)
 
             # At last iteration, use `inputs_hat` to compute `outputs` in order to backpropagate gradient
-            if i == self.num_routing - 1:
+            if i == self.routings - 1:
                 # c.shape =  [batch_size, num_capsule, input_num_capsule]
                 # inputs_hat.shape=[None, num_capsule, input_num_capsule, dim_capsule]
                 # The first two dimensions as `batch` dimension,
