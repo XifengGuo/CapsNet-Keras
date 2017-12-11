@@ -4,9 +4,9 @@ The current version maybe only works for TensorFlow backend. Actually it will be
 Adopting to other backends should be easy, but I have not tested this. 
 
 Usage:
-       python CapsNet.py
-       python CapsNet.py --epochs 50
-       python CapsNet.py --epochs 50 --routings 3
+       python capsulenet.py
+       python capsulenet.py --epochs 50
+       python capsulenet.py --epochs 50 --routings 3
        ... ...
        
 Result:
