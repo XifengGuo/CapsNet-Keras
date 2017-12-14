@@ -107,7 +107,7 @@ def train(model, data, args):
                                batch_size=args.batch_size, histogram_freq=int(args.debug))
     checkpoint = callbacks.ModelCheckpoint(args.save_dir + '/weights-{epoch:02d}.h5', monitor='val_capsnet_acc',
                                            save_best_only=True, save_weights_only=True, verbose=1)
-    lr_decay = callbacks.LearningRateScheduler(schedule=lambda epoch: args.lr * (0.9 ** epoch))
+    lr_decay = callbacks.LearningRateScheduler(schedule=lambda epoch: args.lr * (args.lr_decay ** epoch))
 
     # compile the model
     model.compile(optimizer=optimizers.Adam(lr=args.lr),
@@ -212,7 +212,7 @@ if __name__ == "__main__":
     parser.add_argument('--batch_size', default=100, type=int)
     parser.add_argument('--lr', default=0.001, type=float,
                         help="Initial learning rate")
-    parser.add_argument('--lr_decay', default=1.0, type=float,
+    parser.add_argument('--lr_decay', default=0.9, type=float,
                         help="The value multiplied by lr at each epoch. Set a larger value for larger epochs")
     parser.add_argument('--lam_recon', default=0.392, type=float,
                         help="The coefficient for the loss of decoder")
@@ -243,7 +243,6 @@ if __name__ == "__main__":
                                                   n_class=len(np.unique(np.argmax(y_train, 1))),
                                                   routings=args.routings)
     model.summary()
-
 
     # train or test
     if args.weights is not None:  # init the model weights with provided one
