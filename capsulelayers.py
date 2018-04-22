@@ -25,6 +25,10 @@ class Length(layers.Layer):
     def compute_output_shape(self, input_shape):
         return input_shape[:-1]
 
+    def get_config(self):
+        config = super(Length, self).get_config()
+        return config
+
 
 class Mask(layers.Layer):
     """
@@ -62,6 +66,10 @@ class Mask(layers.Layer):
             return tuple([None, input_shape[0][1] * input_shape[0][2]])
         else:  # no true label provided
             return tuple([None, input_shape[1] * input_shape[2]])
+
+    def get_config(self):
+        config = super(Mask, self).get_config()
+        return config
 
 
 def squash(vectors, axis=-1):
@@ -156,6 +164,15 @@ class CapsuleLayer(layers.Layer):
 
     def compute_output_shape(self, input_shape):
         return tuple([None, self.num_capsule, self.dim_capsule])
+
+    def get_config(self):
+        config = {
+            'num_capsule': self.num_capsule,
+            'dim_capsule': self.dim_capsule,
+            'routings': self.routings
+        }
+        base_config = super(CapsuleLayer, self).get_config()
+        return dict(list(base_config.items()) + list(config.items()))
 
 
 def PrimaryCap(inputs, dim_capsule, n_channels, kernel_size, strides, padding):
