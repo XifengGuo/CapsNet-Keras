@@ -66,6 +66,8 @@ just change the code as you want.
 
 You can also just *download a model I trained* from 
 https://pan.baidu.com/s/1sldqQo1
+or
+https://drive.google.com/open?id=1A7pRxH7iWzYZekzr-O0nrwqdUUpUpkik
 
 
 **Step 5. Train on multi gpus**   
