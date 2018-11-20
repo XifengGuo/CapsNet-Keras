@@ -20,7 +20,7 @@ class Length(layers.Layer):
     output: shape=[None, num_vectors]
     """
     def call(self, inputs, **kwargs):
-        return K.sqrt(K.sum(K.square(inputs), -1))
+        return K.sqrt(K.sum(K.square(inputs), -1) + K.epsilon())
 
     def compute_output_shape(self, input_shape):
         return input_shape[:-1]
