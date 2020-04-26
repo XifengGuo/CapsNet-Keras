@@ -9,7 +9,6 @@ Author: Xifeng Guo, E-mail: `guoxifeng1990@163.com`, Github: `https://github.com
 
 import keras.backend as K
 import tensorflow
-from batchdot import own
 from batchdot import own_batch_dot
 
 
@@ -133,7 +132,7 @@ class CapsuleLayer(layers.Layer):
         # Regard the first two dimensions as `batch` dimension,
         # then matmul: [input_dim_capsule] x [dim_capsule, input_dim_capsule]^T -> [dim_capsule].
         # inputs_hat.shape = [None, num_capsule, input_num_capsule, dim_capsule]
-        inputs_hat = K.map_fn(lambda x: K.own_batch_dot(x, self.W, [2, 3]), elems=inputs_tiled)
+        inputs_hat = K.map_fn(lambda x: own_batch_dot(x, self.W, [2, 3]), elems=inputs_tiled)
 
         # Begin: Routing algorithm ---------------------------------------------------------------------#
         # The prior for coupling coefficient, initialized as zeros.
@@ -150,7 +149,7 @@ class CapsuleLayer(layers.Layer):
             # The first two dimensions as `batch` dimension,
             # then matmal: [input_num_capsule] x [input_num_capsule, dim_capsule] -> [dim_capsule].
             # outputs.shape=[None, num_capsule, dim_capsule]
-            outputs = squash(K.own_batch_dot(c, inputs_hat, [2, 2]))  # [None, 10, 16]
+            outputs = squash(own_batch_dot(c, inputs_hat, [2, 2]))  # [None, 10, 16]
 
             if i < self.routings - 1:
                 # outputs.shape =  [None, num_capsule, dim_capsule]
@@ -158,7 +157,7 @@ class CapsuleLayer(layers.Layer):
                 # The first two dimensions as `batch` dimension,
                 # then matmal: [dim_capsule] x [input_num_capsule, dim_capsule]^T -> [input_num_capsule].
                 # b.shape=[batch_size, num_capsule, input_num_capsule]
-                b += K.own_batch_dot(outputs, inputs_hat, [2, 3])
+                b += own_batch_dot(outputs, inputs_hat, [2, 3])
         # End: Routing algorithm -----------------------------------------------------------------------#
 
         return outputs
