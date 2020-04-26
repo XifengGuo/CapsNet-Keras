@@ -8,7 +8,7 @@ Author: Xifeng Guo, E-mail: `guoxifeng1990@163.com`, Github: `https://github.com
 """
 
 import keras.backend as K
-import tensorflow
+import tensorflow as tf
 from batchdot import own_batch_dot
 
 
