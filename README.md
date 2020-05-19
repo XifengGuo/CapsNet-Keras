@@ -1,7 +1,7 @@
 # CapsNet-Keras
 [![License](https://img.shields.io/github/license/mashape/apistatus.svg?maxAge=2592000)](https://github.com/XifengGuo/CapsNet-Keras/blob/master/LICENSE)
 
-A Keras implementation of CapsNet in the paper:   
+A Keras (branch [tf2.2](https://github.com/XifengGuo/CapsNet-Keras/tree/tf2.2) supports TensorFlow 2) implementation of CapsNet in the paper:   
 [Sara Sabour, Nicholas Frosst, Geoffrey E Hinton. Dynamic Routing Between Capsules. NIPS 2017](https://arxiv.org/abs/1710.09829)   
 The current `average test error = 0.34%` and `best test error = 0.30%`.   
  
@@ -15,31 +15,34 @@ Sounds crazy, maybe I misunderstood.
 the coefficient for the loss is `lam_recon=0.0005*784=0.392`.   
 This should be **equivalent** with using SSE (sum squared error) and `lam_recon=0.0005` as in the paper.
 
+## Warnning
 
-**TODO**
-- Conduct experiments on other datasets. 
-- Explore interesting characteristics of CapsuleNet.
+Please use Keras==2.0.7 with TensorFlow==1.2 backend, or the `K.batch_dot` function may not work correctly.
 
-**Contacts**
-- Your contributions to the repo are always welcome. 
-Open an issue or contact me with E-mail `guoxifeng1990@163.com` or WeChat `wenlong-guo`.
+However, if you use **Tensorflow>=2.0**, then checkout branch [tf2.2](https://github.com/XifengGuo/CapsNet-Keras/tree/tf2.2)
 
 
 ## Usage
 
-**Step 1.
-Install [Keras>=2.0.7](https://github.com/fchollet/keras) 
-with [TensorFlow>=1.2](https://github.com/tensorflow/tensorflow) backend.**
-```
-pip install tensorflow-gpu
-pip install keras
-```
-
-**Step 2. Clone this repository to local.**
+**Step 1. Clone this repository to local.**
 ```
 git clone https://github.com/XifengGuo/CapsNet-Keras.git capsnet-keras
 cd capsnet-keras
+git checkout tf2.2 # Only if use Tensorflow>=2.0
 ```
+
+**Step 2.
+Install Keras==2.0.7 with TensorFlow==1.2 backend.**
+```
+pip install tensorflow-gpu==1.2
+pip install keras==2.0.7
+```
+**or install Tensorflow>=2.0**
+```
+pip install tensorflow==2.2
+```
+
+
 
 **Step 3. Train a CapsNet on MNIST**  
 
