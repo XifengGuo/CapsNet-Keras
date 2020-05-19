@@ -1,7 +1,7 @@
 # CapsNet-Keras
 [![License](https://img.shields.io/github/license/mashape/apistatus.svg?maxAge=2592000)](https://github.com/XifengGuo/CapsNet-Keras/blob/master/LICENSE)
 
-A Keras implementation of CapsNet in the paper:   
+A Keras/TensorFlow2.2 implementation of CapsNet in the paper:   
 [Sara Sabour, Nicholas Frosst, Geoffrey E Hinton. Dynamic Routing Between Capsules. NIPS 2017](https://arxiv.org/abs/1710.09829)   
 The current `average test error = 0.34%` and `best test error = 0.30%`.   
  
@@ -28,11 +28,9 @@ Open an issue or contact me with E-mail `guoxifeng1990@163.com` or WeChat `wenlo
 ## Usage
 
 **Step 1.
-Install [Keras>=2.0.7](https://github.com/fchollet/keras) 
-with [TensorFlow>=1.2](https://github.com/tensorflow/tensorflow) backend.**
+Install [TensorFlow>=2.0](https://github.com/tensorflow/tensorflow) backend.**
 ```
-pip install tensorflow-gpu
-pip install keras
+pip install tensorflow==2.2.0
 ```
 
 **Step 2. Clone this repository to local.**
